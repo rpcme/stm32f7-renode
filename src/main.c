@@ -21,6 +21,7 @@
 
 
 #include "FreeRTOS.h"
+#include "FreeRTOSConfig.h"
 #include "task.h"
 #include "semphr.h"
 
@@ -67,12 +68,6 @@ static void prvSetupHardware( void );
 static void prvSystemClockConfig( void );
 
 /*
- * Called by main when mainCREATE_SIMPLE_BLINKY_DEMO_ONLY is set to 1 in
- * main.c.
- */
-void main_blinky( void );
-
-/*
  * The tasks as described in the comments at the top of this file.
  */
 static void prvQueueReceiveTask( void *pvParameters );
@@ -85,36 +80,6 @@ static QueueHandle_t xQueue = NULL;
 
 /*-----------------------------------------------------------*/
 
-void main_blinky( void )
-{
-	/* Create the queue. */
-	xQueue = xQueueCreate( mainQUEUE_LENGTH, sizeof( uint32_t ) );
-
-	if( xQueue != NULL )
-	{
-		/* Start the two tasks as described in the comments at the top of this
-		file. */
-		xTaskCreate( prvQueueReceiveTask,				/* The function that implements the task. */
-					"Rx", 								/* The text name assigned to the task - for debug only as it is not used by the kernel. */
-					configMINIMAL_STACK_SIZE, 			/* The size of the stack to allocate to the task. */
-					NULL, 								/* The parameter passed to the task - not used in this case. */
-					mainQUEUE_RECEIVE_TASK_PRIORITY, 	/* The priority assigned to the task. */
-					NULL );								/* The task handle is not required, so NULL is passed. */
-
-		xTaskCreate( prvQueueSendTask, "TX", configMINIMAL_STACK_SIZE, NULL, mainQUEUE_SEND_TASK_PRIORITY, NULL );
-
-		/* Start the tasks and timer running. */
-		vTaskStartScheduler();
-	}
-
-	/* If all is well, the scheduler will now be running, and the following
-	line will never be reached.  If the following line does execute, then
-	there was insufficient FreeRTOS heap memory available for the Idle and/or
-	timer tasks to be created.  See the memory management section on the
-	FreeRTOS web site for more details on the FreeRTOS heap
-	http://www.freertos.org/a00111.html. */
-	for( ;; );
-}
 /*-----------------------------------------------------------*/
 
 static void prvQueueSendTask( void *pvParameters )
@@ -339,14 +304,30 @@ void vApplicationTickHook( void )
 }
 /*-----------------------------------------------------------*/
 
-
-
-
 int main(void)
 {
   prvSetupHardware();
-  /* Loop forever */
-	for(;;) {
+  /* Create the queue. */
+  xQueue = xQueueCreate( mainQUEUE_LENGTH, sizeof( uint32_t ) );
+  
+  if( xQueue == NULL ) {
+    printf("Queue failed to create.  Cannot continue to start scheduler.");
+    for (;;);
+  }
 
-	}
+  xTaskCreate( prvQueueReceiveTask,
+               "Rx",
+               configMINIMAL_STACK_SIZE,
+               NULL,
+               mainQUEUE_RECEIVE_TASK_PRIORITY,
+               NULL );
+
+  xTaskCreate( prvQueueSendTask,
+               "Tx",
+               configMINIMAL_STACK_SIZE,
+               NULL, mainQUEUE_SEND_TASK_PRIORITY, NULL );
+
+  vTaskStartScheduler();
+
+  for( ;; );
 }
