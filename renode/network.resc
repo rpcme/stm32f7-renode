@@ -1,0 +1,5 @@
+# Network uplink from host
+emulation CreateTap "tap0" "tap"
+emulation CreateSwitch "switch1"
+connector Connect host.tap switch1
+
