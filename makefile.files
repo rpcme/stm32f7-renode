@@ -1,0 +1,48 @@
+APP?=$(abspath .)
+BASEPATH?=$(abspath ..)
+
+OBJ := $(BASEPATH)/obj
+LIB := $(BASEPATH)/lib
+BIN := $(BASEPATH)/bin
+
+STM := $(BASEPATH)/STM32CubeF7
+FRK := $(BASEPATH)/FreeRTOS-Kernel
+FRK_CM7 := $(FRK)/portable/GCC/ARM_CM7/r0p1
+FRD := $(APP)/demo-common
+SRC := $(APP)/src
+
+APP_INCLUDE_core := $(APP)/inc
+
+FRK_INC_core := $(FRK)/include
+FRK_INC_portable := $(FRK_CM7)
+
+STM_DEV := $(STM)/Drivers/CMSIS/Device/ST/STM32F7xx/Include
+STM_BSP := $(STM)/Drivers/BSP/STM32746G-Discovery
+STM_HAL := $(STM)/Drivers/STM32F7xx_HAL_Driver/Inc
+STM_CMSIS := $(STM)/Drivers/CMSIS/Include
+
+FRD_MIN := $(FRD)/minimal
+FRD_MAX := $(FRD)/full
+
+STM_INC = \
+	-I $(STM_DEV) \
+	-I $(STM_BSP) \
+	-I $(STM_HAL) \
+	-I $(STM_CMSIS)
+
+FRK_INC = \
+	-I $(FRK_INC_core) \
+	-I $(FRK_INC_portable)
+
+FRD_INC := \
+	-I $(APP)/demo-common/include
+
+APP_INC := \
+	-I $(APP)/inc
+
+
+INC := \
+	$(STM_INC) \
+	$(FRK_INC) \
+	$(FRD_INC) \
+	$(APP_INC)
