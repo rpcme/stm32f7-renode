@@ -20,6 +20,7 @@ C_SRCS = \
 	$(FRK)/event_groups.c \
 	$(FRK)/list.c \
 	$(FRK)/timers.c \
+	$(FRK)/portable/MemMang/heap_4.c \
 	$(FRK_CM7)/port.c \
 	$(FRD_MIN)/TimerDemo.c \
 	$(FRD_MIN)/QueueOverwrite.c \
@@ -51,6 +52,7 @@ OBJS = \
 	$(OBJ)/list.o \
 	$(OBJ)/event_groups.o \
 	$(OBJ)/timers.o \
+	$(OBJ)/heap_4.o \
 	$(OBJ)/port.o \
 	$(OBJ)/TimerDemo.o \
 	$(OBJ)/QueueOverwrite.o \
@@ -75,6 +77,7 @@ C_DEPS = \
 	$(OBJ)/list.d \
 	$(OBJ)/event_groups.d \
 	$(OBJ)/timers.d \
+	$(OBJ)/heap_4.d \
 	$(OBJ)/port.d \
 	$(OBJ)/TimerDemo.d \
 	$(OBJ)/QueueOverwrite.d \
@@ -97,16 +100,19 @@ $(OBJ)/%.o: $(SRC)/%.s
 $(OBJ)/%.o: $(STM_HAL)/../Src/%.c
 	arm-none-eabi-gcc "$<" $(CFLAGS) $(INC) -o "$@"
 
+$(OBJ)/%.o: $(SRC)/%.c
+	arm-none-eabi-gcc "$<" $(CFLAGS) $(INC) -o "$@"
+
+$(OBJ)/%.o: $(FRD_MIN)/%.c
+	arm-none-eabi-gcc "$<" $(CFLAGS) $(INC) -o "$@"
+
 $(OBJ)/%.o: $(FRK)/%.c
 	arm-none-eabi-gcc "$<" $(CFLAGS) $(INC) -o "$@"
 
 $(OBJ)/%.o: $(FRK_CM7)/%.c
 	arm-none-eabi-gcc "$<" $(CFLAGS) $(INC) -o "$@"
 
-$(OBJ)/%.o: $(FRD_MIN)/%.c
-	arm-none-eabi-gcc "$<" $(CFLAGS) $(INC) -o "$@"
-
-$(OBJ)/%.o: $(SRC)/%.c
+$(OBJ)/%.o: $(FRK)/portable/MemMang/%.c
 	arm-none-eabi-gcc "$<" $(CFLAGS) $(INC) -o "$@"
 
 default: $(OBJS)
