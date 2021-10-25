@@ -1,7 +1,4 @@
 version: 0.2
-run-as: aws-yocto-builder
-env:
-  git-credential-helper: yes
 phases:
   pre_build:
     run-as: root
@@ -12,7 +9,7 @@ phases:
       - apt-get -y upgrade
   build:
     commands:
-      - curl
+      - curl -v
         https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu-rm/10.3-2021.10/gcc-arm-none-eabi-10.3-2021.10-x86_64-linux.tar.bz2 --output gcc-arm-none-eabi-10.3-2021.10-x86_64-linux.tar.bz2
       - tar xjf gcc-arm-none-eabi-10.3-2021.10-x86_64-linux.tar.bz2
       - curl https://storage.googleapis.com/git-repo-downloads/repo > $HOME/repo
