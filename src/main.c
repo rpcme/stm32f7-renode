@@ -18,7 +18,7 @@
  */
 
 #include <stdint.h>
-
+#include <stdio.h>
 
 #include "FreeRTOS.h"
 #include "FreeRTOSConfig.h"
