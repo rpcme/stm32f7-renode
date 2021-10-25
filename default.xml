@@ -11,7 +11,7 @@
            name="STM32CubeF7"
            path="STM32CubeF7" />
   <project remote="rpcme"
-           revision="main"
+           revision="master"
            name="stm32f7-renode"
            path="stm32f7-renode" />
   <project remote="freertos"
