@@ -2,9 +2,8 @@
 
 AS = arm-none-eabi-as
 
-CFLAGS = -mcpu=cortex-m7 -std=gnu11 -g3 -DDEBUG -DSTM32 -DSTM32F746NGHx -DSTM32F7 -DSTM32F746xx -c -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -MMD -MP --specs=nano.specs -mfpu=fpv5-sp-d16 -mfloat-abi=hard -mthumb
-
-
+# -DHAL_ETH_MODULE_ENABLED 
+CFLAGS = -mcpu=cortex-m7 -std=gnu11 -g3 -DDEBUG -DSTM32 -DSTM32F746NGHx -DSTM32F7 -DSTM32F7xx -DSTM32F746xx -c -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -MMD -MP --specs=nano.specs -mfpu=fpv5-sp-d16 -mfloat-abi=hard -mthumb
 
 C_SRCS = \
 	$(STM_HAL)/../Src/stm32f7xx_hal.c \
@@ -30,7 +29,19 @@ C_SRCS = \
 	$(FRD_MIN)/TaskNotify.c \
 	$(SRC)/stm32f7xx_hal_msp.c \
 	$(SRC)/system_stm32f7xx.c \
-	$(SRC)/main.c
+	$(SRC)/main.c \
+	$(FRP_TCP)/FreeRTOS_IP.c \
+	$(FRP_TCP)/FreeRTOS_ARP.c \
+	$(FRP_TCP)/FreeRTOS_DHCP.c \
+	$(FRP_TCP)/FreeRTOS_DNS.c \
+	$(FRP_TCP)/FreeRTOS_Sockets.c \
+	$(FRP_TCP)/FreeRTOS_TCP_IP.c \
+	$(FRP_TCP)/FreeRTOS_UDP_IP.c \
+	$(FRP_TCP)/FreeRTOS_TCP_WIN.c \
+	$(FRP_TCP)/FreeRTOS_Stream_Buffer.c \
+	$(FRP_TCP)/portable/NetworkInterface/STM32Fxx/stm32fxx_hal_eth.c \
+	$(FRP_TCP)/portable/NetworkInterface/STM32Fxx/NetworkInterface.c \
+	$(FRP_TCP)/portable/BufferManagement/BufferAllocation_2.c
 
 #	$(SRC)/stm32f7xx_it.c \
 #	$(OBJ)/stm32f7xx_it.o \
@@ -60,7 +71,19 @@ OBJS = \
 	$(OBJ)/IntSemTest.o \
 	$(OBJ)/QueueSet.o \
 	$(OBJ)/TaskNotify.o \
-	$(OBJ)/main.o
+	$(OBJ)/main.o \
+	$(OBJ)/FreeRTOS_IP.o \
+	$(OBJ)/FreeRTOS_ARP.o \
+	$(OBJ)/FreeRTOS_DHCP.o \
+	$(OBJ)/FreeRTOS_DNS.o \
+	$(OBJ)/FreeRTOS_Sockets.o \
+	$(OBJ)/FreeRTOS_TCP_IP.o \
+	$(OBJ)/FreeRTOS_UDP_IP.o \
+	$(OBJ)/FreeRTOS_TCP_WIN.o \
+	$(OBJ)/FreeRTOS_Stream_Buffer.o \
+	$(OBJ)/stm32fxx_hal_eth.o \
+	$(OBJ)/NetworkInterface.o \
+	$(OBJ)/BufferAllocation_2.o
 
 C_DEPS = \
 	$(OBJ)/system_stm32f7xx.d \
@@ -87,7 +110,19 @@ C_DEPS = \
 	$(OBJ)/TaskNotify.d \
 	$(OBJ)/stm32f7xx_it.d \
 	$(OBJ)/stm32f7xx_hal_msp.d \
-	$(OBJ)/main.d
+	$(OBJ)/main.d \
+	$(OBJ)/FreeRTOS_IP.d \
+	$(OBJ)/FreeRTOS_ARP.d \
+	$(OBJ)/FreeRTOS_DHCP.d \
+	$(OBJ)/FreeRTOS_DNS.d \
+	$(OBJ)/FreeRTOS_Sockets.d \
+	$(OBJ)/FreeRTOS_TCP_IP.d \
+	$(OBJ)/FreeRTOS_UDP_IP.d \
+	$(OBJ)/FreeRTOS_TCP_WIN.d \
+	$(OBJ)/FreeRTOS_Stream_Buffer.d \
+	$(OBJ)/stm32fxx_hal_eth.d \
+	$(OBJ)/NetworkInterface.d \
+	$(OBJ)/BufferAllocation_2.d
 
 S_SRCS = $(SRC)/startup_stm32f746nghx.s
 
@@ -113,6 +148,15 @@ $(OBJ)/%.o: $(FRK_CM7)/%.c
 	arm-none-eabi-gcc "$<" $(CFLAGS) $(INC) -o "$@"
 
 $(OBJ)/%.o: $(FRK)/portable/MemMang/%.c
+	arm-none-eabi-gcc "$<" $(CFLAGS) $(INC) -o "$@"
+
+$(OBJ)/%.o: $(FRP_TCP)/%.c
+	arm-none-eabi-gcc "$<" $(CFLAGS) $(INC) -o "$@"
+
+$(OBJ)/%.o: $(FRP_TCP)/portable/NetworkInterface/STM32Fxx/%.c
+	arm-none-eabi-gcc "$<" $(CFLAGS) $(INC) -o "$@"
+
+$(OBJ)/%.o: $(FRP_TCP)/portable/BufferManagement/%.c
 	arm-none-eabi-gcc "$<" $(CFLAGS) $(INC) -o "$@"
 
 default: $(OBJS)

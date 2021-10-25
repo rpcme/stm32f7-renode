@@ -8,6 +8,7 @@ BIN := $(BASEPATH)/bin
 STM := $(BASEPATH)/STM32CubeF7
 FRK := $(BASEPATH)/FreeRTOS-Kernel
 FRK_CM7 := $(FRK)/portable/GCC/ARM_CM7/r0p1
+FRP_TCP := $(BASEPATH)/FreeRTOS-Plus-TCP
 FRD := $(APP)/demo-common
 SRC := $(APP)/src
 
@@ -40,9 +41,16 @@ FRD_INC := \
 APP_INC := \
 	-I $(APP)/inc
 
+FRP_TCP_INC := \
+	-I $(FRP_TCP)/include \
+	-I $(FRP_TCP)/portable/Compiler/GCC \
+	-I $(FRP_TCP)/portable/NetworkInterface/STM32Fxx \
+	-I $(FRP_TCP)/portable/NetworkInterface/include
 
 INC := \
 	$(STM_INC) \
 	$(FRK_INC) \
 	$(FRD_INC) \
-	$(APP_INC)
+	$(APP_INC) \
+	$(FRP_TCP_INC)
+
