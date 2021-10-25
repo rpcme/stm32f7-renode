@@ -14,8 +14,6 @@ phases:
       - ./repo init -u https://github.com/rpcme/stm32f7-renode
       - ./repo sync
       - export PATH=$(pwd)/gcc-arm-none-eabi-10.3-2021.10/bin:$PATH
-      - ls -l
-      - ls -l stm32f7-renode
       - mkdir obj
       - mkdir bin
       - cd ${CODEBUILD_SRC_DIR}
