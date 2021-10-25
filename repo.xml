@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<manifest>
+  <default sync-j="4" />
+  
+  <remote name="stm"  fetch="git://github.com/STMicroelectronics" />
+  <remote name="freertos"  fetch="git://github.com/FreeRTOS" />
+  <remote name="rpcme" fetch="git://github.com/rpcme" />
+
+  <project remote="stm"
+	   revision="master"
+           name="STM32CubeF7"
+           path="STM32CubeF7" />
+  <project remote="rpcme"
+           revision="main"
+           name="stm32f7-renode"
+           path="stm32f7-renode" />
+  <project remote="freertos"
+           revision="main"
+           name="FreeRTOS-Kernel"
+           path="FreeRTOS-Kernel" />
+  <project remote="freertos"
+           revision="main"
+           name="FreeRTOS-Plus-TCP"
+           path="FreeRTOS-Plus-TCP" />
+  <project remote="freertos"
+           revision="main"
+           name="coreMQTT"
+           path="coreMQTT" />
+  <project remote="freertos"
+           revision="main"
+           name="coreMQTT-Agent"
+           path="coreMQTT-Agent" />
+</manifest>
