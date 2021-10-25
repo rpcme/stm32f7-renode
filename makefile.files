@@ -7,50 +7,76 @@ BIN := $(BASEPATH)/bin
 
 STM := $(BASEPATH)/STM32CubeF7
 FRK := $(BASEPATH)/FreeRTOS-Kernel
-FRK_CM7 := $(FRK)/portable/GCC/ARM_CM7/r0p1
-FRP_TCP := $(BASEPATH)/FreeRTOS-Plus-TCP
+FRT := $(BASEPATH)/FreeRTOS-Plus-TCP
 FRD := $(APP)/demo-common
 SRC := $(APP)/src
-
-APP_INCLUDE_core := $(APP)/inc
-
-FRK_INC_core := $(FRK)/include
-FRK_INC_portable := $(FRK_CM7)
-
-STM_DEV := $(STM)/Drivers/CMSIS/Device/ST/STM32F7xx/Include
-STM_BSP := $(STM)/Drivers/BSP/STM32746G-Discovery
-STM_HAL := $(STM)/Drivers/STM32F7xx_HAL_Driver/Inc
-STM_CMSIS := $(STM)/Drivers/CMSIS/Include
 
 FRD_MIN := $(FRD)/minimal
 FRD_MAX := $(FRD)/full
 
-STM_INC = \
-	-I $(STM_DEV) \
-	-I $(STM_BSP) \
-	-I $(STM_HAL) \
-	-I $(STM_CMSIS)
+C_SRCS = \
+	$(STM)/Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal.c \
+	$(STM)/Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_adc.c \
+	$(STM)/Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_cortex.c \
+	$(STM)/Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_dma.c \
+	$(STM)/Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_eth.c \
+	$(STM)/Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_gpio.c \
+	$(STM)/Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_rcc.c \
+	$(STM)/Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_tim.c \
+	$(STM)/Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_tim_ex.c \
+	$(FRK)/tasks.c \
+	$(FRK)/queue.c \
+	$(FRK)/event_groups.c \
+	$(FRK)/list.c \
+	$(FRK)/timers.c \
+	$(FRK)/portable/MemMang/heap_4.c \
+	$(FRK)/portable/GCC/ARM_CM7/r0p1/port.c \
+	$(FRD_MIN)/TimerDemo.c \
+	$(FRD_MIN)/QueueOverwrite.c \
+	$(FRD_MIN)/EventGroupsDemo.c \
+	$(FRD_MIN)/IntSemTest.c \
+	$(FRD_MIN)/QueueSet.c \
+	$(FRD_MIN)/TaskNotify.c \
+	$(SRC)/stm32f7xx_hal_msp.c \
+	$(SRC)/system_stm32f7xx.c \
+	$(SRC)/main.c \
+	$(FRT)/FreeRTOS_IP.c \
+	$(FRT)/FreeRTOS_ARP.c \
+	$(FRT)/FreeRTOS_DHCP.c \
+	$(FRT)/FreeRTOS_DNS.c \
+	$(FRT)/FreeRTOS_Sockets.c \
+	$(FRT)/FreeRTOS_TCP_IP.c \
+	$(FRT)/FreeRTOS_UDP_IP.c \
+	$(FRT)/FreeRTOS_TCP_WIN.c \
+	$(FRT)/FreeRTOS_Stream_Buffer.c \
+	$(FRT)/portable/NetworkInterface/STM32Fxx/NetworkInterface.c \
+	$(FRT)/portable/BufferManagement/BufferAllocation_1.c
 
-FRK_INC = \
-	-I $(FRK_INC_core) \
-	-I $(FRK_INC_portable)
 
-FRD_INC := \
-	-I $(APP)/demo-common/include
+# Not in docs
+#	$(FRT)/portable/NetworkInterface/Common/phyHandling.c \
+#	$(FRT)/portable/NetworkInterface/Common/phyHandling.c \
 
-APP_INC := \
-	-I $(APP)/inc
 
-FRP_TCP_INC := \
-	-I $(FRP_TCP)/include \
-	-I $(FRP_TCP)/portable/Compiler/GCC \
-	-I $(FRP_TCP)/portable/NetworkInterface/STM32Fxx \
-	-I $(FRP_TCP)/portable/NetworkInterface/include
+S_SRCS = $(SRC)/startup_stm32f746nghx.s
+S_DEPS = $(SRC)/startup_stm32f746nghx.d
 
-INC := \
-	$(STM_INC) \
-	$(FRK_INC) \
-	$(FRD_INC) \
-	$(APP_INC) \
-	$(FRP_TCP_INC)
+OBJS  = $(S_SRCS:.s=.o) $(C_SRCS:.c=.o)
+DEPS  = $(S_SRCS:.s=.d) $(C_SRCS:.c=.d)
 
+INC_PATH =
+INC_PATH += \
+	$(STM)/Drivers/BSP/STM32746G-Discovery \
+	$(STM)/Drivers/STM32F7xx_HAL_Driver/Inc \
+	$(STM)/Drivers/CMSIS/Include \
+	$(STM)/Drivers/CMSIS/Device/ST/STM32F7xx/Include \
+	$(FRK)/include \
+	$(FRK)/portable/GCC/ARM_CM7/r0p1 \
+	$(FRT)/portable/Compiler/GCC \
+	$(FRT)/portable/NetworkInterface/include \
+	$(FRT)/include \
+	$(APP)/inc \
+	$(APP)/demo-common/include
+
+
+INC = $(INC_PATH:%=-I%)
