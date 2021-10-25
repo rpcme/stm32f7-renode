@@ -14,6 +14,7 @@ C_SRCS = \
 	$(STM_HAL)/../Src/stm32f7xx_hal_tim.c \
 	$(STM_HAL)/../Src/stm32f7xx_hal_tim_ex.c \
 	$(STM_HAL)/../Src/stm32f7xx_hal_dma.c \
+	$(STM_HAL)/../Src/stm32f7xx_hal_eth.c \
 	$(FRK)/tasks.c \
 	$(FRK)/queue.c \
 	$(FRK)/event_groups.c \
@@ -39,7 +40,6 @@ C_SRCS = \
 	$(FRP_TCP)/FreeRTOS_UDP_IP.c \
 	$(FRP_TCP)/FreeRTOS_TCP_WIN.c \
 	$(FRP_TCP)/FreeRTOS_Stream_Buffer.c \
-	$(FRP_TCP)/portable/NetworkInterface/STM32Fxx/stm32fxx_hal_eth.c \
 	$(FRP_TCP)/portable/NetworkInterface/STM32Fxx/NetworkInterface.c \
 	$(FRP_TCP)/portable/BufferManagement/BufferAllocation_2.c
 
