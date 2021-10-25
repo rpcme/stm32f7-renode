@@ -5,8 +5,6 @@ phases:
     commands:
       - git config --global user.name "Cloudy Builder"
       - git config --global user.email "email@example.com"
-      - apt-get update
-      - apt-get -y upgrade
   build:
     commands:
       - curl -v
