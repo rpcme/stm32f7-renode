@@ -8,6 +8,7 @@ phases:
     commands:
       - git config --global user.name "Cloudy Builder"
       - git config --global user.email "email@example.com"
+      - apt-get install curl
   build:
     commands:
       - curl https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu-rm/10.3-2021.10/gcc-arm-none-eabi-10.3-2021.10-x86_64-linux.tar.bz2 | tar xjf -
