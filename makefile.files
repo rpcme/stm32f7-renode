@@ -17,13 +17,21 @@ FRD_MAX := $(FRD)/full
 C_SRCS = \
 	$(STM)/Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal.c \
 	$(STM)/Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_adc.c \
+	$(STM)/Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_adc_ex.c \
 	$(STM)/Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_cortex.c \
+	$(STM)/Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_dac.c \
+	$(STM)/Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_dac_ex.c \
+	$(STM)/Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_dcmi.c \
 	$(STM)/Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_dma.c \
-	$(STM)/Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_eth.c \
+	$(STM)/Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_dma_ex.c \
+	$(STM)/Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_flash.c \
+	$(STM)/Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_flash_ex.c \
 	$(STM)/Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_gpio.c \
 	$(STM)/Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_rcc.c \
+	$(STM)/Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_rng.c \
 	$(STM)/Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_tim.c \
 	$(STM)/Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_tim_ex.c \
+	$(STM)/Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_ll_sdmmc.c \
 	$(FRK)/tasks.c \
 	$(FRK)/queue.c \
 	$(FRK)/event_groups.c \
@@ -50,13 +58,8 @@ C_SRCS = \
 	$(FRT)/FreeRTOS_TCP_WIN.c \
 	$(FRT)/FreeRTOS_Stream_Buffer.c \
 	$(FRT)/portable/NetworkInterface/STM32Fxx/NetworkInterface.c \
+	$(FRT)/portable/NetworkInterface/STM32Fxx/stm32fxx_hal_eth.c \
 	$(FRT)/portable/BufferManagement/BufferAllocation_1.c
-
-
-# Not in docs
-#	$(FRT)/portable/NetworkInterface/Common/phyHandling.c \
-#	$(FRT)/portable/NetworkInterface/Common/phyHandling.c \
-
 
 S_SRCS = $(SRC)/startup_stm32f746nghx.s
 S_DEPS = $(SRC)/startup_stm32f746nghx.d
@@ -64,19 +67,22 @@ S_DEPS = $(SRC)/startup_stm32f746nghx.d
 OBJS  = $(S_SRCS:.s=.o) $(C_SRCS:.c=.o)
 DEPS  = $(S_SRCS:.s=.d) $(C_SRCS:.c=.d)
 
+
+# FreeRTOS-Plus-TCP port headers must come first because there are
+# some naming conflicts with the ST SDK.
 INC_PATH =
 INC_PATH += \
-	$(STM)/Drivers/BSP/STM32746G-Discovery \
+	$(FRT)/portable/NetworkInterface/STM32Fxx \
 	$(STM)/Drivers/STM32F7xx_HAL_Driver/Inc \
+	$(STM)/Drivers/BSP/STM32746G-Discovery \
 	$(STM)/Drivers/CMSIS/Include \
 	$(STM)/Drivers/CMSIS/Device/ST/STM32F7xx/Include \
 	$(FRK)/include \
 	$(FRK)/portable/GCC/ARM_CM7/r0p1 \
-	$(FRT)/portable/Compiler/GCC \
 	$(FRT)/portable/NetworkInterface/include \
+	$(FRT)/portable/Compiler/GCC \
 	$(FRT)/include \
 	$(APP)/inc \
 	$(APP)/demo-common/include
-
 
 INC = $(INC_PATH:%=-I%)
