@@ -57,6 +57,7 @@ C_SRCS = \
 	$(FRT)/FreeRTOS_UDP_IP.c \
 	$(FRT)/FreeRTOS_TCP_WIN.c \
 	$(FRT)/FreeRTOS_Stream_Buffer.c \
+	$(FRT)/portable/NetworkInterface/Common/phyHandling.c \
 	$(FRT)/portable/NetworkInterface/STM32Fxx/NetworkInterface.c \
 	$(FRT)/portable/NetworkInterface/STM32Fxx/stm32fxx_hal_eth.c \
 	$(FRT)/portable/BufferManagement/BufferAllocation_1.c

@@ -22,8 +22,11 @@
 
 #include "FreeRTOS.h"
 #include "FreeRTOSConfig.h"
+#include "FreeRTOSIPConfig.h"
 #include "task.h"
 #include "semphr.h"
+#include "FreeRTOS_IP.h"
+#include "FreeRTOS_Sockets.h"
 
 #include "TimerDemo.h"
 #include "QueueOverwrite.h"
@@ -31,6 +34,13 @@
 #include "IntSemTest.h"
 #include "QueueSet.h"
 #include "TaskNotify.h"
+
+#define mainDEVICE_NICK_NAME "re:Invent"
+#include "logging_levels.h"
+#define LIBRARY_LOG_LEVEL LOG_INFO
+#define LIBRARY_LOG_NAME  "re:Invent"
+#include "logging_stack.h"
+
 
 #if !defined(__SOFT_FP__) && defined(__ARM_FP)
   #warning "FPU is not initialized, but the project is compiling for an FPU. Please initialize the FPU before use."
@@ -79,6 +89,11 @@ static void prvQueueSendTask( void *pvParameters );
 static QueueHandle_t xQueue = NULL;
 
 /*-----------------------------------------------------------*/
+static const uint8_t ucIPAddress[ 4 ] = { configIP_ADDR0, configIP_ADDR1, configIP_ADDR2, configIP_ADDR3 };
+static const uint8_t ucNetMask[ 4 ] = { configNET_MASK0, configNET_MASK1, configNET_MASK2, configNET_MASK3 };
+static const uint8_t ucGatewayAddress[ 4 ] = { configGATEWAY_ADDR0, configGATEWAY_ADDR1, configGATEWAY_ADDR2, configGATEWAY_ADDR3 };
+static const uint8_t ucDNSServerAddress[ 4 ] = { configDNS_SERVER_ADDR0, configDNS_SERVER_ADDR1, configDNS_SERVER_ADDR2, configDNS_SERVER_ADDR3 };
+const uint8_t ucMACAddress[ 6 ] = { configMAC_ADDR0, configMAC_ADDR1, configMAC_ADDR2, configMAC_ADDR3, configMAC_ADDR4, configMAC_ADDR5 };
 
 /*-----------------------------------------------------------*/
 
@@ -304,6 +319,78 @@ void vApplicationTickHook( void )
 }
 /*-----------------------------------------------------------*/
 
+/* Called by FreeRTOS+TCP when the network connects or disconnects.  Disconnect
+ * events are only received if implemented in the MAC driver. */
+void vApplicationIPNetworkEventHook( eIPCallbackEvent_t eNetworkEvent )
+{
+    uint32_t ulIPAddress, ulNetMask, ulGatewayAddress, ulDNSServerAddress;
+    char cBuffer[ 16 ];
+    static BaseType_t xTasksAlreadyCreated = pdFALSE;
+
+    /* If the network has just come up...*/
+    if( eNetworkEvent == eNetworkUp )
+    {
+        /* Create the tasks that use the IP stack if they have not already been
+         * created. */
+        //if( xTasksAlreadyCreated == pdFALSE )
+        //{
+            /* Demos that use the network are created after the network is
+             * up. */
+      //    LogInfo( ( "---------STARTING DEMO---------\r\n" ) );
+      //    vStartSimpleMQTTDemo();
+      //    xTasksAlreadyCreated = pdTRUE;
+      //}
+
+        /* Print out the network configuration, which may have come from a DHCP
+         * server. */
+        FreeRTOS_GetAddressConfiguration( &ulIPAddress, &ulNetMask, &ulGatewayAddress, &ulDNSServerAddress );
+        FreeRTOS_inet_ntoa( ulIPAddress, cBuffer );
+        LogInfo( ( "\r\n\r\nIP Address: %s\r\n", cBuffer ) );
+
+        FreeRTOS_inet_ntoa( ulNetMask, cBuffer );
+        LogInfo( ( "Subnet Mask: %s\r\n", cBuffer ) );
+
+        FreeRTOS_inet_ntoa( ulGatewayAddress, cBuffer );
+        LogInfo( ( "Gateway Address: %s\r\n", cBuffer ) );
+
+        FreeRTOS_inet_ntoa( ulDNSServerAddress, cBuffer );
+        LogInfo( ( "DNS Server Address: %s\r\n\r\n\r\n", cBuffer ) );
+    }
+}
+
+
+void vApplicationPingReplyHook( ePingReplyStatus_t eStatus, uint16_t usIdentifier )
+{
+static const uint8_t *pcSuccess = ( uint8_t * ) "Ping reply received - ";
+static const uint8_t *pcInvalidChecksum = ( uint8_t * ) "Ping reply received with invalid checksum - ";
+static const uint8_t *pcInvalidData = ( uint8_t * ) "Ping reply received with invalid data - ";
+static uint8_t cMessage[ 50 ];
+
+
+        switch( eStatus )
+        {
+                case eSuccess   :
+                        FreeRTOS_debug_printf( ( ( char * ) pcSuccess ) );
+                        break;
+
+                case eInvalidChecksum :
+                        FreeRTOS_debug_printf( ( ( char * ) pcInvalidChecksum ) );
+                        break;
+
+                case eInvalidData :
+                        FreeRTOS_debug_printf( ( ( char * ) pcInvalidData ) );
+                        break;
+
+                default :
+                        /* It is not possible to get here as all enums have their own
+                        case. */
+                        break;
+        }
+
+        sprintf( ( char * ) cMessage, "identifier %d\r\n", ( int ) usIdentifier );
+        FreeRTOS_debug_printf( ( ( char * ) cMessage ) );
+}
+
 int main(void)
 {
   prvSetupHardware();
@@ -327,7 +414,72 @@ int main(void)
                configMINIMAL_STACK_SIZE,
                NULL, mainQUEUE_SEND_TASK_PRIORITY, NULL );
 
+  FreeRTOS_IPInit( ucIPAddress, ucNetMask, ucGatewayAddress, ucDNSServerAddress, ucMACAddress );
+  
   vTaskStartScheduler();
 
   for( ;; );
 }
+
+
+extern uint32_t ulApplicationGetNextSequenceNumber( uint32_t ulSourceAddress,
+                                                    uint16_t usSourcePort,
+                                                    uint32_t ulDestinationAddress,
+                                                    uint16_t usDestinationPort )
+{
+    ( void ) ulSourceAddress;
+    ( void ) usSourcePort;
+    ( void ) ulDestinationAddress;
+    ( void ) usDestinationPort;
+
+    return uxRand();
+}
+
+BaseType_t xApplicationGetRandomNumber( uint32_t * pulNumber )
+{
+    *pulNumber = uxRand();
+    return pdTRUE;
+}
+
+static UBaseType_t ulNextRand;
+UBaseType_t uxRand( void )
+{
+    const uint32_t ulMultiplier = 0x015a4e35UL, ulIncrement = 1UL;
+
+    /*
+     * Utility function to generate a pseudo random number.
+     *
+     * !!!NOTE!!!
+     * This is not a secure method of generating a random number.  Production
+     * devices should use a True Random Number Generator (TRNG).
+     */
+    ulNextRand = ( ulMultiplier * ulNextRand ) + ulIncrement;
+    return( ( int ) ( ulNextRand >> 16UL ) & 0x7fffUL );
+}
+
+
+    BaseType_t xApplicationDNSQueryHook( const char * pcName )
+    {
+        BaseType_t xReturn;
+
+        /* Determine if a name lookup is for this node.  Two names are given
+         * to this node: that returned by pcApplicationHostnameHook() and that set
+         * by mainDEVICE_NICK_NAME. */
+
+        /*
+        if( _stricmp( pcName, pcApplicationHostnameHook() ) == 0 )
+        {
+            xReturn = pdPASS;
+        }
+        else if( _stricmp( pcName, mainDEVICE_NICK_NAME ) == 0 )
+        {
+            xReturn = pdPASS;
+        }
+        else
+        {
+            xReturn = pdFAIL;
+        }
+        */
+        return pdPASS;
+    }
+

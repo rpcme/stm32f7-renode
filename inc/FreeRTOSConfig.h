@@ -148,5 +148,8 @@ files. */
 
 #endif /* __IAR_SYSTEMS_ASM__ */
 
+
+#define _stricmp   strcmp
+
 #endif /* FREERTOS_CONFIG_H */
 

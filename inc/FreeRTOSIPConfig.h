@@ -77,7 +77,10 @@
 
 #ifndef FREERTOS_IP_CONFIG_H
 #define FREERTOS_IP_CONFIG_H
+extern UBaseType_t uxRand();
+#define ipconfigRAND32()    uxRand()
 
+#include <stdio.h>
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -176,7 +179,7 @@ set to 1 if a valid configuration cannot be obtained from a DHCP server for any
 reason.  The static configuration used is that passed into the stack by the
 FreeRTOS_IPInit() function call. */
 #define ipconfigUSE_DHCP		1
-#define ipconfigDHCP_REGISTER_HOSTNAME	1
+#define ipconfigDHCP_REGISTER_HOSTNAME	0
 #define ipconfigDHCP_USES_UNICAST       1
 
 /* When ipconfigUSE_DHCP is set to 1, DHCP requests will be sent out at
@@ -341,7 +344,7 @@ disconnecting stage will timeout after a period of non-activity. */
 #define ipconfigTCP_KEEP_ALIVE				( 1 )
 #define ipconfigTCP_KEEP_ALIVE_INTERVAL		( 20 ) /* in seconds */
 
-#define ipconfigUSE_DHCP_HOOK				( 1 )
+#define ipconfigUSE_DHCP_HOOK				( 0 )
 
 /* The example IP trace macros are included here so the definitions are
 available in all the FreeRTOS+TCP source files. */
@@ -370,7 +373,7 @@ constants that follow. */
 
 /* Prototype for the function used to print out.  In this case the standard
 UDP logging facility is used. */
-extern int lUDPLoggingPrintf( const char *pcFormatString, ... );
+//extern int lUDPLoggingPrintf( const char *pcFormatString, ... );
 
 /* Set to 1 to print out debug messages.  If ipconfigHAS_DEBUG_PRINTF is set to
 1 then FreeRTOS_debug_printf should be defined to the function used to print
@@ -380,7 +383,7 @@ out the debugging messages. */
 #endif
 
 #if( ipconfigHAS_DEBUG_PRINTF == 1 )
-	#define FreeRTOS_debug_printf(X)	lUDPLoggingPrintf X
+	#define FreeRTOS_debug_printf(X)	printf X
 #endif
 
 /* Set to 1 to print out non debugging messages, for example the output of the
@@ -392,11 +395,11 @@ messages. */
 #endif
 
 #if( ipconfigHAS_PRINTF == 1 )
-	#define FreeRTOS_printf(X)			lUDPLoggingPrintf X
+	#define FreeRTOS_printf(X)		printf X
 #endif
 
 #define ipconfigFTP_ZERO_COPY_ALIGNED_WRITES	0
-#define ipconfigDNS_USE_CALLBACKS				1
+#define ipconfigDNS_USE_CALLBACKS				0
 #define ipconfigSUPPORT_SIGNALS					1
 
 #define ipconfigMAC_INTERRUPT_PRIORITY	( configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY )
@@ -475,5 +478,45 @@ the performance of other TCP/IP stack activity. */
 #ifdef __cplusplus
 } /* extern "C" */
 #endif
+
+
+#define configMAC_ADDR0                     0x00
+#define configMAC_ADDR1                     0x11
+#define configMAC_ADDR2                     0x11
+#define configMAC_ADDR3                     0x11
+#define configMAC_ADDR4                     0x11
+#define configMAC_ADDR5                     0x41
+
+
+/* Default IP address configuration.  Used in ipconfigUSE_DNS is set to 0, or
+ * ipconfigUSE_DNS is set to 1 but a DNS server cannot be contacted. */
+#define configIP_ADDR0                      10
+#define configIP_ADDR1                      10
+#define configIP_ADDR2                      10
+#define configIP_ADDR3                      200
+
+/* Default gateway IP address configuration.  Used in ipconfigUSE_DNS is set to
+ * 0, or ipconfigUSE_DNS is set to 1 but a DNS server cannot be contacted. */
+#define configGATEWAY_ADDR0                 10
+#define configGATEWAY_ADDR1                 10
+#define configGATEWAY_ADDR2                 10
+#define configGATEWAY_ADDR3                 1
+
+/* Default DNS server configuration.  OpenDNS addresses are 208.67.222.222 and
+ * 208.67.220.220.  Used in ipconfigUSE_DNS is set to 0, or ipconfigUSE_DNS is set
+ * to 1 but a DNS server cannot be contacted.*/
+#define configDNS_SERVER_ADDR0              208
+#define configDNS_SERVER_ADDR1              67
+#define configDNS_SERVER_ADDR2              222
+#define configDNS_SERVER_ADDR3              222
+
+/* Default netmask configuration.  Used in ipconfigUSE_DNS is set to 0, or
+ * ipconfigUSE_DNS is set to 1 but a DNS server cannot be contacted. */
+#define configNET_MASK0                     255
+#define configNET_MASK1                     0
+#define configNET_MASK2                     0
+#define configNET_MASK3                     0
+
+
 
 #endif /* FREERTOS_IP_CONFIG_H */
