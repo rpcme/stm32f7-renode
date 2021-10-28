@@ -24,6 +24,10 @@
            path="coreMQTT" />
   <project remote="freertos"
            revision="main"
+           name="FreeRTOS-Plus-Logging"
+           path="FreeRTOS-Plus-Logging" />
+  <project remote="freertos"
+           revision="main"
            name="coreMQTT-Agent"
            path="coreMQTT-Agent" />
 </manifest>
