@@ -1,0 +1,3 @@
+include $ORIGIN/network.resc
+include $ORIGIN/machine.resc
+include $ORIGIN/connect.resc

@@ -1,5 +1,10 @@
 # Network uplink from host
 emulation CreateTap "tap0" "tap"
 emulation CreateSwitch "switch1"
-connector Connect host.tap switch1
+emulation CreateUartPtyTerminal "term0" "/tmp/uart0"
+
+# sudo amazon-linux-extras install mono
+# sudo yum install -y telnet
+# pip install -r /home/ec2-user/environment/renode_1.12.0_portable/tests/requirements.txt
+
 

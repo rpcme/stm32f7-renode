@@ -1,0 +1,21 @@
+using sysbus
+$name?="STM32F746"
+mach create $name
+
+machine LoadPlatformDescription @platforms/boards/stm32f7_discovery-bb.repl
+
+#showAnalyzer usart1
+#showAnalyzer ltdc
+
+# According to the current structure, the elf file is off this repo's
+# parent directory.
+
+set bin $ORIGIN/../../bin/freertos-stm32f7-renode.elf
+
+macro reset
+"""
+    sysbus LoadELF $bin
+"""
+
+runMacro $reset
+
