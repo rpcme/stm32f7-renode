@@ -71,3 +71,4 @@ default: $(OBJS)
 clean:
 	-$(VERBOSE_CMD)$(RM) $(OBJS)
 	-$(VERBOSE_CMD)$(RM) $(DEPS)
+	-$(VERBOSE_CMD)$(RM) $(SUFILES)

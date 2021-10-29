@@ -72,6 +72,7 @@ S_DEPS = $(SRC)/startup_stm32f746nghx.d
 
 OBJS  = $(S_SRCS:.s=.o) $(C_SRCS:.c=.o)
 DEPS  = $(S_SRCS:.s=.d) $(C_SRCS:.c=.d)
+SUFILES = $(S_SRCS:.s=.su) $(C_SRCS:.c=.su)
 
 
 # FreeRTOS-Plus-TCP port headers must come first because there are
