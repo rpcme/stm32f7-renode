@@ -28,19 +28,14 @@
 #include "FreeRTOS_IP.h"
 #include "FreeRTOS_Sockets.h"
 
-#include "TimerDemo.h"
-#include "QueueOverwrite.h"
-#include "EventGroupsDemo.h"
-#include "IntSemTest.h"
-#include "QueueSet.h"
-#include "TaskNotify.h"
+#include "app-hardware.h"
+#include "app-demo.h"
 
 #define mainDEVICE_NICK_NAME "re:Invent"
 #include "logging_levels.h"
 #define LIBRARY_LOG_LEVEL LOG_INFO
 #define LIBRARY_LOG_NAME  "re:Invent"
 #include "logging_stack.h"
-
 
 #if !defined(__SOFT_FP__) && defined(__ARM_FP)
   #warning "FPU is not initialized, but the project is compiling for an FPU. Please initialize the FPU before use."
@@ -59,23 +54,6 @@ will remove items as they are added, meaning the send task should always find
 the queue empty. */
 #define mainQUEUE_LENGTH					( 1 )
 
-/* The LED is used to show the demo status. (not connected on Rev A hardware) */
-#define mainTOGGLE_LED()	HAL_GPIO_TogglePin( GPIOF, GPIO_PIN_10 )
-
-
-
-
-
-/*-----------------------------------------------------------*/
-/*
- * Configure the hardware as necessary to run this demo.
- */
-static void prvSetupHardware( void );
-
-/*
- * Configure the system clock for maximum speed.
- */
-static void prvSystemClockConfig( void );
 
 /*
  * The tasks as described in the comments at the top of this file.
@@ -87,6 +65,7 @@ static void prvQueueSendTask( void *pvParameters );
 
 /* The queue used by both tasks. */
 static QueueHandle_t xQueue = NULL;
+static SemaphoreHandle_t xUartMutex = NULL;
 
 /*-----------------------------------------------------------*/
 static const uint8_t ucIPAddress[ 4 ] = { configIP_ADDR0, configIP_ADDR1, configIP_ADDR2, configIP_ADDR3 };
@@ -148,257 +127,21 @@ const unsigned long ulExpectedValue = 100UL;
 }
 /*-----------------------------------------------------------*/
 
-static void prvSetupHardware( void )
-{
-GPIO_InitTypeDef  GPIO_InitStruct;
-
-	/* Configure Flash prefetch and Instruction cache through ART accelerator. */
-	#if( ART_ACCLERATOR_ENABLE != 0 )
-	{
-		__HAL_FLASH_ART_ENABLE();
-	}
-	#endif /* ART_ACCLERATOR_ENABLE */
-
-	/* Set Interrupt Group Priority */
-	HAL_NVIC_SetPriorityGrouping( NVIC_PRIORITYGROUP_4 );
-
-	/* Init the low level hardware. */
-	HAL_MspInit();
-
-	/* Configure the System clock to have a frequency of 200 MHz */
-	prvSystemClockConfig();
-
-	/* Enable GPIOB  Clock (to be able to program the configuration
-	registers) and configure for LED output. */
-	__GPIOG_CLK_ENABLE();
-	__HAL_RCC_GPIOF_CLK_ENABLE();
-
-	GPIO_InitStruct.Pin = GPIO_PIN_10;
-	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-	GPIO_InitStruct.Pull = GPIO_PULLUP;
-	GPIO_InitStruct.Speed = GPIO_SPEED_HIGH;
-	HAL_GPIO_Init( GPIOF, &GPIO_InitStruct );
-
-	/* MCO2 : Pin PC9 */
-	HAL_RCC_MCOConfig( RCC_MCO2, RCC_MCO2SOURCE_SYSCLK, RCC_MCODIV_1 );
-}
 /*-----------------------------------------------------------*/
 
-static void prvSystemClockConfig( void )
-{
-	/* The system Clock is configured as follow :
-		System Clock source            = PLL (HSE)
-		SYSCLK(Hz)                     = 200000000
-		HCLK(Hz)                       = 200000000
-		AHB Prescaler                  = 1
-		APB1 Prescaler                 = 4
-		APB2 Prescaler                 = 2
-		HSE Frequency(Hz)              = 25000000
-		PLL_M                          = 25
-		PLL_N                          = 400
-		PLL_P                          = 2
-		PLL_Q                          = 7
-		VDD(V)                         = 3.3
-		Main regulator output voltage  = Scale1 mode
-		Flash Latency(WS)              = 7 */
-	RCC_ClkInitTypeDef RCC_ClkInitStruct;
-	RCC_OscInitTypeDef RCC_OscInitStruct;
-
-	/* Enable HSE Oscillator and activate PLL with HSE as source */
-	RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
-	RCC_OscInitStruct.HSEState = RCC_HSE_ON;
-	RCC_OscInitStruct.HSIState = RCC_HSI_OFF;
-	RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
-	RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
-	RCC_OscInitStruct.PLL.PLLM = 25;
-	RCC_OscInitStruct.PLL.PLLN = 400;
-	RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
-	RCC_OscInitStruct.PLL.PLLQ = 7;
-	HAL_RCC_OscConfig(&RCC_OscInitStruct);
-
-	/* Select PLL as system clock source and configure the HCLK, PCLK1 and PCLK2
-	clocks dividers */
-	RCC_ClkInitStruct.ClockType = (RCC_CLOCKTYPE_SYSCLK | RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2);
-	RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
-	RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
-	RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV4;
-	RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV2;
-	configASSERT( HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_7) == HAL_OK );
-}
 /*-----------------------------------------------------------*/
-
-void vApplicationMallocFailedHook( void )
-{
-	/* Called if a call to pvPortMalloc() fails because there is insufficient
-	free memory available in the FreeRTOS heap.  pvPortMalloc() is called
-	internally by FreeRTOS API functions that create tasks, queues, software
-	timers, and semaphores.  The size of the FreeRTOS heap is set by the
-	configTOTAL_HEAP_SIZE configuration constant in FreeRTOSConfig.h. */
-
-	/* Force an assert. */
-	configASSERT( ( volatile void * ) NULL );
-}
-/*-----------------------------------------------------------*/
-
-void vApplicationStackOverflowHook( TaskHandle_t pxTask, char *pcTaskName )
-{
-	( void ) pcTaskName;
-	( void ) pxTask;
-
-	/* Run time stack overflow checking is performed if
-	configCHECK_FOR_STACK_OVERFLOW is defined to 1 or 2.  This hook
-	function is called if a stack overflow is detected. */
-
-	/* Force an assert. */
-	configASSERT( ( volatile void * ) NULL );
-}
-/*-----------------------------------------------------------*/
-
-void vApplicationIdleHook( void )
-{
-volatile size_t xFreeHeapSpace;
-
-	/* This is just a trivial example of an idle hook.  It is called on each
-	cycle of the idle task.  It must *NOT* attempt to block.  In this case the
-	idle task just queries the amount of FreeRTOS heap that remains.  See the
-	memory management section on the http://www.FreeRTOS.org web site for memory
-	management options.  If there is a lot of heap memory free then the
-	configTOTAL_HEAP_SIZE value in FreeRTOSConfig.h can be reduced to free up
-	RAM. */
-	xFreeHeapSpace = xPortGetFreeHeapSize();
-
-	/* Remove compiler warning about xFreeHeapSpace being set but never used. */
-	( void ) xFreeHeapSpace;
-}
-/*-----------------------------------------------------------*/
-
-void vAssertCalled( uint32_t ulLine, const char *pcFile )
-{
-volatile unsigned long ul = 0;
-
-	( void ) pcFile;
-	( void ) ulLine;
-
-	taskENTER_CRITICAL();
-	{
-		/* Set ul to a non-zero value using the debugger to step out of this
-		function. */
-		while( ul == 0 )
-		{
-			__NOP();
-		}
-	}
-	taskEXIT_CRITICAL();
-}
-/*-----------------------------------------------------------*/
-
-void vApplicationTickHook( void )
-{
-	#if( mainCREATE_SIMPLE_BLINKY_DEMO_ONLY == 0 )
-	{
-		/* The full demo includes a software timer demo/test that requires
-		prodding periodically from the tick interrupt. */
-		vTimerPeriodicISRTests();
-
-		/* Call the periodic queue overwrite from ISR demo. */
-		vQueueOverwritePeriodicISRDemo();
-
-		/* Call the periodic event group from ISR demo. */
-		vPeriodicEventGroupsProcessing();
-
-		/* Call the code that uses a mutex from an ISR. */
-		vInterruptSemaphorePeriodicTest();
-
-		/* Use a queue set from an ISR. */
-		vQueueSetAccessQueueSetFromISR();
-
-		/* Use task notifications from an ISR. */
-		xNotifyTaskFromISR();
-	}
-	#endif
-}
-/*-----------------------------------------------------------*/
-
-/* Called by FreeRTOS+TCP when the network connects or disconnects.  Disconnect
- * events are only received if implemented in the MAC driver. */
-void vApplicationIPNetworkEventHook( eIPCallbackEvent_t eNetworkEvent )
-{
-    uint32_t ulIPAddress, ulNetMask, ulGatewayAddress, ulDNSServerAddress;
-    char cBuffer[ 16 ];
-    static BaseType_t xTasksAlreadyCreated = pdFALSE;
-
-    /* If the network has just come up...*/
-    if( eNetworkEvent == eNetworkUp )
-    {
-        /* Create the tasks that use the IP stack if they have not already been
-         * created. */
-        //if( xTasksAlreadyCreated == pdFALSE )
-        //{
-            /* Demos that use the network are created after the network is
-             * up. */
-      //    LogInfo( ( "---------STARTING DEMO---------\r\n" ) );
-      //    vStartSimpleMQTTDemo();
-      //    xTasksAlreadyCreated = pdTRUE;
-      //}
-
-        /* Print out the network configuration, which may have come from a DHCP
-         * server. */
-        FreeRTOS_GetAddressConfiguration( &ulIPAddress, &ulNetMask, &ulGatewayAddress, &ulDNSServerAddress );
-        FreeRTOS_inet_ntoa( ulIPAddress, cBuffer );
-        LogInfo( ( "\r\n\r\nIP Address: %s\r\n", cBuffer ) );
-
-        FreeRTOS_inet_ntoa( ulNetMask, cBuffer );
-        LogInfo( ( "Subnet Mask: %s\r\n", cBuffer ) );
-
-        FreeRTOS_inet_ntoa( ulGatewayAddress, cBuffer );
-        LogInfo( ( "Gateway Address: %s\r\n", cBuffer ) );
-
-        FreeRTOS_inet_ntoa( ulDNSServerAddress, cBuffer );
-        LogInfo( ( "DNS Server Address: %s\r\n\r\n\r\n", cBuffer ) );
-    }
-}
-
-
-void vApplicationPingReplyHook( ePingReplyStatus_t eStatus, uint16_t usIdentifier )
-{
-static const uint8_t *pcSuccess = ( uint8_t * ) "Ping reply received - ";
-static const uint8_t *pcInvalidChecksum = ( uint8_t * ) "Ping reply received with invalid checksum - ";
-static const uint8_t *pcInvalidData = ( uint8_t * ) "Ping reply received with invalid data - ";
-static uint8_t cMessage[ 50 ];
-
-
-        switch( eStatus )
-        {
-                case eSuccess   :
-                        FreeRTOS_debug_printf( ( ( char * ) pcSuccess ) );
-                        break;
-
-                case eInvalidChecksum :
-                        FreeRTOS_debug_printf( ( ( char * ) pcInvalidChecksum ) );
-                        break;
-
-                case eInvalidData :
-                        FreeRTOS_debug_printf( ( ( char * ) pcInvalidData ) );
-                        break;
-
-                default :
-                        /* It is not possible to get here as all enums have their own
-                        case. */
-                        break;
-        }
-
-        sprintf( ( char * ) cMessage, "identifier %d\r\n", ( int ) usIdentifier );
-        FreeRTOS_debug_printf( ( ( char * ) cMessage ) );
-}
 
 int main(void)
 {
-  prvSetupHardware();
-  /* Create the queue. */
-  xQueue = xQueueCreate( mainQUEUE_LENGTH, sizeof( uint32_t ) );
-  
+    prvSetupHardware();
+
+#if ( APP_DEMO_PING == 1 )
+    /* Create the queue. */
+    xQueue = xQueueCreate( mainQUEUE_LENGTH, sizeof( uint32_t ) );
+    xUartMutex = xSemaphoreCreateMutex();
+    
   if( xQueue == NULL ) {
-    printf("Queue failed to create.  Cannot continue to start scheduler.");
+    vLoggingPrintf("Queue failed to create.  Cannot continue to start scheduler.");
     for (;;);
   }
 
@@ -414,6 +157,7 @@ int main(void)
                configMINIMAL_STACK_SIZE,
                NULL, mainQUEUE_SEND_TASK_PRIORITY, NULL );
 
+#endif 
   FreeRTOS_IPInit( ucIPAddress, ucNetMask, ucGatewayAddress, ucDNSServerAddress, ucMACAddress );
   
   vTaskStartScheduler();
@@ -482,4 +226,17 @@ UBaseType_t uxRand( void )
         */
         return pdPASS;
     }
+
+
+void vLoggingPrintf(const char *pcFormatString, ... )
+{
+    extern UART_HandleTypeDef * huart;
+    va_list arg;
+
+    xSemaphoreTake( xUartMutex, portMAX_DELAY );
+    {
+        HAL_UART_Transmit( huart, (uint8_t *) pcFormatString, strlen(pcFormatString), 10);
+    }
+    xSemaphoreGive( xUartMutex );
+}
 

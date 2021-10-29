@@ -366,14 +366,10 @@ available in all the FreeRTOS+TCP source files. */
 
 #define HTTP_FILE_BUFFER_SIZE				( 2 * ipconfigTCP_MSS )
 
-/* UDP Logging related constants follow.  The standard UDP logging facility
-writes formatted strings to a buffer, and creates a task that removes messages
-from the buffer and sends them to the UDP address and port defined by the
-constants that follow. */
-
 /* Prototype for the function used to print out.  In this case the standard
 UDP logging facility is used. */
-//extern int lUDPLoggingPrintf( const char *pcFormatString, ... );
+
+extern void vLoggingPrintf( const char *pcFormatString, ... );
 
 /* Set to 1 to print out debug messages.  If ipconfigHAS_DEBUG_PRINTF is set to
 1 then FreeRTOS_debug_printf should be defined to the function used to print
@@ -383,7 +379,7 @@ out the debugging messages. */
 #endif
 
 #if( ipconfigHAS_DEBUG_PRINTF == 1 )
-	#define FreeRTOS_debug_printf(X)	printf X
+	#define FreeRTOS_debug_printf(X)	vLoggingPrintf X
 #endif
 
 /* Set to 1 to print out non debugging messages, for example the output of the
@@ -395,7 +391,7 @@ messages. */
 #endif
 
 #if( ipconfigHAS_PRINTF == 1 )
-	#define FreeRTOS_printf(X)		printf X
+	#define FreeRTOS_printf(X)		vLoggingPrintf X
 #endif
 
 #define ipconfigFTP_ZERO_COPY_ALIGNED_WRITES	0

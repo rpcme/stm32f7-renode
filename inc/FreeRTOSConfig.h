@@ -29,7 +29,8 @@
 #ifndef FREERTOS_CONFIG_H
 #define FREERTOS_CONFIG_H
 
-//#include "stm32f746xx.h"
+extern uint32_t SystemCoreClock;
+#include "app-hardware.h"
 
 /*-----------------------------------------------------------
  * Application specific definitions.
@@ -132,24 +133,8 @@ standard names. */
 #define vPortSVCHandler SVC_Handler
 #define xPortSysTickHandler SysTick_Handler
 
-/* Prevent the inclusion of items the assembler will not understand in assembly
-files. */
-#ifndef __IAR_SYSTEMS_ASM__
-
-	/* Library includes. */
-	#include "stm32f7xx_hal.h"
-
-	extern uint32_t SystemCoreClock;
-
-	/* Normal assert() semantics without relying on the provision of an assert.h
-	header file. */
-	extern void vAssertCalled( uint32_t ulLine, const char *pcFile );
-	#define configASSERT( x ) if( ( x ) == 0 ) vAssertCalled( __LINE__, __FILE__ )
-
-#endif /* __IAR_SYSTEMS_ASM__ */
-
-
-#define _stricmp   strcmp
+extern void vAssertCalled( uint32_t ulLine, const char *pcFile );
+#define configASSERT( x ) if( ( x ) == 0 ) vAssertCalled( __LINE__, __FILE__ )
 
 #endif /* FREERTOS_CONFIG_H */
 

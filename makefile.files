@@ -31,7 +31,9 @@ C_SRCS = \
 	$(STM)/Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_rng.c \
 	$(STM)/Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_tim.c \
 	$(STM)/Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_tim_ex.c \
+	$(STM)/Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_uart.c \
 	$(STM)/Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_ll_sdmmc.c \
+	$(STM)/Drivers/BSP/STM32746G-Discovery/stm32746g_discovery.c \
 	$(FRK)/tasks.c \
 	$(FRK)/queue.c \
 	$(FRK)/event_groups.c \
@@ -47,6 +49,9 @@ C_SRCS = \
 	$(FRD_MIN)/TaskNotify.c \
 	$(SRC)/stm32f7xx_hal_msp.c \
 	$(SRC)/system_stm32f7xx.c \
+	$(SRC)/app-hardware.c \
+	$(SRC)/app-kernel-hooks.c \
+	$(SRC)/app-network-hooks.c \
 	$(SRC)/main.c \
 	$(FRT)/FreeRTOS_IP.c \
 	$(FRT)/FreeRTOS_ARP.c \
