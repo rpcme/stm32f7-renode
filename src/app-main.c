@@ -39,128 +39,42 @@
   #warning "FPU is not initialized, but the project is compiling for an FPU. Please initialize the FPU before use."
 #endif
 
-/* Priorities at which the tasks are created. */
-#define mainQUEUE_RECEIVE_TASK_PRIORITY		( tskIDLE_PRIORITY + 2 )
-#define	mainQUEUE_SEND_TASK_PRIORITY		( tskIDLE_PRIORITY + 1 )
+void vLoggingPrintfRaw(const char *pcFormatString, ... );
 
-/* The rate at which data is sent to the queue.  The 200ms value is converted
-to ticks using the portTICK_PERIOD_MS constant. */
-#define mainQUEUE_SEND_FREQUENCY_MS			( 200 / portTICK_PERIOD_MS )
-
-/* The number of items the queue can hold.  This is 1 as the receive task
-will remove items as they are added, meaning the send task should always find
-the queue empty. */
-#define mainQUEUE_LENGTH					( 1 )
-
-
-/*
- * The tasks as described in the comments at the top of this file.
- */
-static void prvQueueReceiveTask( void *pvParameters );
-static void prvQueueSendTask( void *pvParameters );
 
 /*-----------------------------------------------------------*/
 
-/* The queue used by both tasks. */
-static QueueHandle_t xQueue = NULL;
-static SemaphoreHandle_t xUartMutex = NULL;
-
-/*-----------------------------------------------------------*/
+#if ( APP_PROGRAM_NETWORK == 1 )
 static const uint8_t ucIPAddress[ 4 ] = { configIP_ADDR0, configIP_ADDR1, configIP_ADDR2, configIP_ADDR3 };
 static const uint8_t ucNetMask[ 4 ] = { configNET_MASK0, configNET_MASK1, configNET_MASK2, configNET_MASK3 };
 static const uint8_t ucGatewayAddress[ 4 ] = { configGATEWAY_ADDR0, configGATEWAY_ADDR1, configGATEWAY_ADDR2, configGATEWAY_ADDR3 };
 static const uint8_t ucDNSServerAddress[ 4 ] = { configDNS_SERVER_ADDR0, configDNS_SERVER_ADDR1, configDNS_SERVER_ADDR2, configDNS_SERVER_ADDR3 };
 const uint8_t ucMACAddress[ 6 ] = { configMAC_ADDR0, configMAC_ADDR1, configMAC_ADDR2, configMAC_ADDR3, configMAC_ADDR4, configMAC_ADDR5 };
+#endif
 
-/*-----------------------------------------------------------*/
-
-static void prvQueueSendTask( void *pvParameters )
-{
-TickType_t xNextWakeTime;
-const unsigned long ulValueToSend = 100UL;
-
-	/* Remove compiler warning about unused parameter. */
-	( void ) pvParameters;
-
-	/* Initialise xNextWakeTime - this only needs to be done once. */
-	xNextWakeTime = xTaskGetTickCount();
-
-	for( ;; )
-	{
-		/* Place this task in the blocked state until it is time to run again. */
-		vTaskDelayUntil( &xNextWakeTime, mainQUEUE_SEND_FREQUENCY_MS );
-
-		/* Send to the queue - causing the queue receive task to unblock and
-		toggle the LED.  0 is used as the block time so the sending operation
-		will not block - it shouldn't need to block as the queue should always
-		be empty at this point in the code. */
-		xQueueSend( xQueue, &ulValueToSend, 0U );
-	}
-}
-/*-----------------------------------------------------------*/
-
-static void prvQueueReceiveTask( void *pvParameters )
-{
-unsigned long ulReceivedValue;
-const unsigned long ulExpectedValue = 100UL;
-
-	/* Remove compiler warning about unused parameter. */
-	( void ) pvParameters;
-
-	for( ;; )
-	{
-		/* Wait until something arrives in the queue - this task will block
-		indefinitely provided INCLUDE_vTaskSuspend is set to 1 in
-		FreeRTOSConfig.h. */
-		xQueueReceive( xQueue, &ulReceivedValue, portMAX_DELAY );
-
-		/*  To get here something must have been received from the queue, but
-		is it the expected value?  If it is, toggle the LED. */
-		if( ulReceivedValue == ulExpectedValue )
-		{
-			mainTOGGLE_LED();
-			ulReceivedValue = 0U;
-		}
-	}
-}
-/*-----------------------------------------------------------*/
-
-/*-----------------------------------------------------------*/
-
-/*-----------------------------------------------------------*/
+static SemaphoreHandle_t xUartMutex = NULL;
 
 int main(void)
 {
+
     prvSetupHardware();
 
-#if ( APP_DEMO_PING == 1 )
-    /* Create the queue. */
-    xQueue = xQueueCreate( mainQUEUE_LENGTH, sizeof( uint32_t ) );
+#if ( APP_PROGRAM_UART == 1 )
     xUartMutex = xSemaphoreCreateMutex();
-    
-  if( xQueue == NULL ) {
-    vLoggingPrintf("Queue failed to create.  Cannot continue to start scheduler.");
-    for (;;);
-  }
+    const char * start = "Starting up.";
+    vLoggingPrintfRaw(start);
+#endif
 
-  xTaskCreate( prvQueueReceiveTask,
-               "Rx",
-               configMINIMAL_STACK_SIZE,
-               NULL,
-               mainQUEUE_RECEIVE_TASK_PRIORITY,
-               NULL );
+#if ( APP_PROGRAM_BLINKY == 1 )
+    vInitializeTaskBlinky();    
+#endif
 
-  xTaskCreate( prvQueueSendTask,
-               "Tx",
-               configMINIMAL_STACK_SIZE,
-               NULL, mainQUEUE_SEND_TASK_PRIORITY, NULL );
+#if ( APP_PROGRAM_NETWORK == 1 )
+    FreeRTOS_IPInit( ucIPAddress, ucNetMask, ucGatewayAddress, ucDNSServerAddress, ucMACAddress );
+#endif
 
-#endif 
-  FreeRTOS_IPInit( ucIPAddress, ucNetMask, ucGatewayAddress, ucDNSServerAddress, ucMACAddress );
-  
-  vTaskStartScheduler();
-
-  for( ;; );
+    vTaskStartScheduler();
+    for( ;; );
 }
 
 
@@ -203,6 +117,7 @@ UBaseType_t uxRand( void )
     BaseType_t xApplicationDNSQueryHook( const char * pcName )
     {
         BaseType_t xReturn;
+        xReturn = pdPASS;
 
         /* Determine if a name lookup is for this node.  Two names are given
          * to this node: that returned by pcApplicationHostnameHook() and that set
@@ -222,19 +137,23 @@ UBaseType_t uxRand( void )
             xReturn = pdFAIL;
         }
         */
-        return pdPASS;
+        return xReturn;
     }
 
 
 void vLoggingPrintf(const char *pcFormatString, ... )
 {
-    extern UART_HandleTypeDef * huart;
     va_list arg;
 
     xSemaphoreTake( xUartMutex, portMAX_DELAY );
     {
-        HAL_UART_Transmit( huart, (uint8_t *) pcFormatString, strlen(pcFormatString), 10);
+        vLoggingPrintfRaw(pcFormatString);
     }
     xSemaphoreGive( xUartMutex );
 }
 
+void vLoggingPrintfRaw(const char *pcFormatString, ... )
+{
+    extern UART_HandleTypeDef * huart;
+    HAL_UART_Transmit( huart, (uint8_t *) pcFormatString, strlen(pcFormatString), 10);
+}
