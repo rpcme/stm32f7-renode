@@ -4,11 +4,13 @@ include makefile.files
 AS = arm-none-eabi-as
 CC = arm-none-eabi-gcc
 
+
+#	-mfpu=fpv5-sp-d16 \
+
 C_EXTRA_FLAGS =\
 	-mcpu=cortex-m7 \
 	-std=gnu11 \
 	-mfloat-abi=hard \
-	-mfpu=fpv5-sp-d16 \
 	-mthumb \
 	-c \
 	-Os \
