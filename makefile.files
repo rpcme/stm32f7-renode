@@ -52,7 +52,8 @@ C_SRCS = \
 	$(SRC)/app-hardware.c \
 	$(SRC)/app-kernel-hooks.c \
 	$(SRC)/app-network-hooks.c \
-	$(SRC)/main.c \
+	$(SRC)/app-main.c \
+	$(SRC)/app-main-blinky.c \
 	$(FRT)/FreeRTOS_IP.c \
 	$(FRT)/FreeRTOS_ARP.c \
 	$(FRT)/FreeRTOS_DHCP.c \
