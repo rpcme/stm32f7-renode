@@ -1,7 +1,7 @@
 # Network uplink from host
 emulation CreateTap "tap0" "tap"
 emulation CreateSwitch "switch1"
-emulation CreateUartPtyTerminal "term0" "/tmp/uart0"
+#emulation CreateUartPtyTerminal "term0" "/tmp/uart0"
 
 # sudo amazon-linux-extras install mono
 # sudo yum install -y telnet

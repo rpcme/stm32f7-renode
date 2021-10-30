@@ -2,7 +2,7 @@
 connector Connect sysbus.ethernet switch1
 
 # Connect the board UART port to the temporary terminal device
-connector Connect sysbus.usart1 "term0"
+#connector Connect sysbus.usart1 "term0"
 
 # Connect the local /dev/net/tap to the virtual switch
 connector Connect host.tap "switch1"

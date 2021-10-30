@@ -154,6 +154,6 @@ void vLoggingPrintf(const char *pcFormatString, ... )
 
 void vLoggingPrintfRaw(const char *pcFormatString, ... )
 {
-    extern UART_HandleTypeDef * huart;
-    HAL_UART_Transmit( huart, (uint8_t *) pcFormatString, strlen(pcFormatString), 10);
+    extern UART_HandleTypeDef xUARTHandle;
+    HAL_UART_Transmit( &xUARTHandle, (uint8_t *) pcFormatString, strlen(pcFormatString), 10);
 }

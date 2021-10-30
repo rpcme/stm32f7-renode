@@ -4,8 +4,8 @@ mach create $name
 
 machine LoadPlatformDescription @platforms/boards/stm32f7_discovery-bb.repl
 
-#showAnalyzer usart1
-#showAnalyzer ltdc
+showAnalyzer usart1
+showAnalyzer ltdc
 
 # According to the current structure, the elf file is off this repo's
 # parent directory.

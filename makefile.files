@@ -27,6 +27,7 @@ C_SRCS = \
 	$(STM)/Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_flash.c \
 	$(STM)/Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_flash_ex.c \
 	$(STM)/Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_gpio.c \
+	$(STM)/Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_pwr_ex.c \
 	$(STM)/Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_rcc.c \
 	$(STM)/Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_rng.c \
 	$(STM)/Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_tim.c \

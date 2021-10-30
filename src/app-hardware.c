@@ -5,56 +5,44 @@
  */
 
 #include <string.h>
-#include "app-hardware.h"
+/* Naming conventions in this file follow those from the ST Micro CUBE
+ * SDK so it's easier to follow when you're comparing the settings
+ * against the SDK */
 
+#include "app-hardware.h"
 #include "FreeRTOSConfig.h"
 
+UART_HandleTypeDef xUARTHandle;
 
-void prvSystemClockConfig( void );
+void SystemClock_Config( void );
 void prvUART_Init( void );
 
 void prvSetupHardware( void )
 {
-    GPIO_InitTypeDef  GPIO_InitStruct;
-
+    /* Enable I-Cache */
     SCB_EnableICache();
+
+    /* Enable D-Cache */
     SCB_EnableDCache();
-    
+
     HAL_Init();
-    
-    /* Configure the System clock to have a frequency of 200 MHz */
-    prvSystemClockConfig();
+    SystemClock_Config();
 
     BSP_LED_Init( LED1 );
-    BSP_COM_Init( COM1, huart );
+    BSP_PB_Init(BUTTON_KEY, BUTTON_MODE_GPIO);    
+    //BSP_COM_Init( COM1, huart );
 
-        /* Configure Flash prefetch and Instruction cache through ART accelerator. */
-#if( ART_ACCLERATOR_ENABLE != 0 )
-    {
-      __HAL_FLASH_ART_ENABLE();
-    }
-#endif /* ART_ACCLERATOR_ENABLE */
+    xUARTHandle.Instance        = USARTx;
 
-    /* Set Interrupt Group Priority */
-    HAL_NVIC_SetPriorityGrouping( NVIC_PRIORITYGROUP_4 );
-
-    /* Init the low level hardware. */
-    HAL_MspInit();
-
-
-    /* Enable GPIOB  Clock (to be able to program the configuration
-       registers) and configure for LED output. */
-    __GPIOG_CLK_ENABLE();
-    __HAL_RCC_GPIOF_CLK_ENABLE();
-    
-    GPIO_InitStruct.Pin = GPIO_PIN_10;
-    GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-    GPIO_InitStruct.Pull = GPIO_PULLUP;
-    GPIO_InitStruct.Speed = GPIO_SPEED_HIGH;
-    HAL_GPIO_Init( GPIOF, &GPIO_InitStruct );
-    
-    /* MCO2 : Pin PC9 */
-    HAL_RCC_MCOConfig( RCC_MCO2, RCC_MCO2SOURCE_SYSCLK, RCC_MCODIV_1 );    
+    xUARTHandle.Init.BaudRate   = 115200;
+    xUARTHandle.Init.WordLength = UART_WORDLENGTH_8B;
+    xUARTHandle.Init.StopBits   = UART_STOPBITS_1;
+    xUARTHandle.Init.Parity     = UART_PARITY_NONE;
+    xUARTHandle.Init.HwFlowCtl  = UART_HWCONTROL_NONE;
+    xUARTHandle.Init.Mode       = UART_MODE_TX_RX;
+    xUARTHandle.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
+    configASSERT(HAL_UART_DeInit(&xUARTHandle) != HAL_OK);
+    configASSERT(HAL_UART_Init(&xUARTHandle) != HAL_OK);
 }
 
 /**
@@ -77,29 +65,42 @@ void prvSetupHardware( void )
   * @param  None
   * @retval None
   */
-void prvSystemClockConfig( void )
+void SystemClock_Config( void )
 {
-	RCC_ClkInitTypeDef RCC_ClkInitStruct;
-	RCC_OscInitTypeDef RCC_OscInitStruct;
+    RCC_ClkInitTypeDef RCC_ClkInitStruct;
+    RCC_OscInitTypeDef RCC_OscInitStruct;
 
-	/* Enable HSE Oscillator and activate PLL with HSE as source */
-	RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
-	RCC_OscInitStruct.HSEState = RCC_HSE_ON;
-	RCC_OscInitStruct.HSIState = RCC_HSI_OFF;
-	RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
-	RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
-	RCC_OscInitStruct.PLL.PLLM = 25;
-	RCC_OscInitStruct.PLL.PLLN = 432;
-	RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
-	RCC_OscInitStruct.PLL.PLLQ = 9;
-	HAL_RCC_OscConfig(&RCC_OscInitStruct);
+    /* Enable Power Control clock */
+    __HAL_RCC_PWR_CLK_ENABLE();
 
-	/* Select PLL as system clock source and configure the HCLK, PCLK1 and PCLK2
+    /* The voltage scaling allows optimizing the power consumption when the device is
+       clocked below the maximum system frequency, to update the voltage scaling value 
+       regarding system frequency refer to product datasheet.  */
+    __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
+
+
+    /* Enable HSE Oscillator and activate PLL with HSE as source */
+    RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
+    RCC_OscInitStruct.HSEState = RCC_HSE_ON;
+    //RCC_OscInitStruct.HSIState = RCC_HSI_OFF;
+    RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
+    RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
+    RCC_OscInitStruct.PLL.PLLM = 25;
+    RCC_OscInitStruct.PLL.PLLN = 400;
+    RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
+    RCC_OscInitStruct.PLL.PLLQ = 8;
+    HAL_RCC_OscConfig(&RCC_OscInitStruct);
+
+    /* activate the OverDrive */
+    configASSERT( HAL_PWREx_ActivateOverDrive() != HAL_OK);
+
+    
+    /* Select PLL as system clock source and configure the HCLK, PCLK1 and PCLK2
        clocks dividers */
-	RCC_ClkInitStruct.ClockType = (RCC_CLOCKTYPE_SYSCLK | RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2);
-	RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
-	RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
-	RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV4;
-	RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV2;
-	configASSERT( HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_7) == HAL_OK );
+    RCC_ClkInitStruct.ClockType = (RCC_CLOCKTYPE_SYSCLK | RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2);
+    RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
+    RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
+    RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV4;
+    RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV2;
+    configASSERT( HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_7) == HAL_OK );
 }
