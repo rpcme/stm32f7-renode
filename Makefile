@@ -1,5 +1,5 @@
 # -*- makefile -*-
-include makefile.files
+include stm32f746.mk
 
 AS = arm-none-eabi-as
 CC = arm-none-eabi-gcc
@@ -8,6 +8,9 @@ CC = arm-none-eabi-gcc
 #	-mfpu=fpv5-sp-d16 \
 
 C_EXTRA_FLAGS =\
+	-DDEBUG \
+	-g2 \
+	-ggdb \
 	-mcpu=cortex-m7 \
 	-std=gnu11 \
 	-mfloat-abi=hard \
@@ -24,16 +27,16 @@ C_EXTRA_FLAGS =\
 	-fno-builtin-memcpy \
 	-fno-builtin-memset
 
-DEFS =
-DEFS += \
-	-DipconfigMULTI_INTERFACE=0 \
-	-DipconfigUSE_IPv6=0 \
+DEFS = \
 	-DSTM32F7xx \
 	-DSTM32F746xx \
-	-DipconfigUSE_HTTP=0 \
-	-DipconfigUSE_FTP=0 \
-	-DHAL_ETH_MODULE_ENABLED=1 \
-	-DHAL_USART_MODULE_ENABLED=1
+	-DUSE_HAL_DRIVER
+#	-DipconfigMULTI_INTERFACE=0 \
+#	-DipconfigUSE_IPv6=0 \
+#	-DipconfigUSE_HTTP=0 \
+#	-DipconfigUSE_FTP=0 \
+#	-DHAL_ETH_MODULE_ENABLED=1 \
+#	-DHAL_USART_MODULE_ENABLED=1
 
 CFLAGS = $(C_EXTRA_FLAGS) $(DEFS)
 
