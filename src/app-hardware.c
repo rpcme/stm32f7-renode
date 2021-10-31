@@ -33,7 +33,6 @@ void prvSetupHardware( void )
     //BSP_COM_Init( COM1, huart );
 
     xUARTHandle.Instance        = USARTx;
-
     xUARTHandle.Init.BaudRate   = 115200;
     xUARTHandle.Init.WordLength = UART_WORDLENGTH_8B;
     xUARTHandle.Init.StopBits   = UART_STOPBITS_1;
@@ -41,8 +40,8 @@ void prvSetupHardware( void )
     xUARTHandle.Init.HwFlowCtl  = UART_HWCONTROL_NONE;
     xUARTHandle.Init.Mode       = UART_MODE_TX_RX;
     xUARTHandle.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
-    configASSERT(HAL_UART_DeInit(&xUARTHandle) != HAL_OK);
-    configASSERT(HAL_UART_Init(&xUARTHandle) != HAL_OK);
+    BSP_COM_DeInit(COM1, &xUARTHandle);
+    BSP_COM_Init(COM1, &xUARTHandle);
 }
 
 /**
@@ -82,18 +81,17 @@ void SystemClock_Config( void )
     /* Enable HSE Oscillator and activate PLL with HSE as source */
     RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
     RCC_OscInitStruct.HSEState = RCC_HSE_ON;
-    //RCC_OscInitStruct.HSIState = RCC_HSI_OFF;
+    RCC_OscInitStruct.HSIState = RCC_HSI_OFF;
     RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
     RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
     RCC_OscInitStruct.PLL.PLLM = 25;
-    RCC_OscInitStruct.PLL.PLLN = 400;
+    RCC_OscInitStruct.PLL.PLLN = 432;
     RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
-    RCC_OscInitStruct.PLL.PLLQ = 8;
+    RCC_OscInitStruct.PLL.PLLQ = 9;
     HAL_RCC_OscConfig(&RCC_OscInitStruct);
 
     /* activate the OverDrive */
     configASSERT( HAL_PWREx_ActivateOverDrive() != HAL_OK);
-
     
     /* Select PLL as system clock source and configure the HCLK, PCLK1 and PCLK2
        clocks dividers */
