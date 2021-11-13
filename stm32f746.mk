@@ -1,5 +1,6 @@
 APP?=$(abspath .)
 BASEPATH?=$(abspath ..)
+MACH := STM32F746xx
 
 OBJ := $(APP)/obj
 LIB := $(APP)/lib
@@ -13,6 +14,20 @@ SRC := $(APP)/src
 
 FRD_MIN := $(FRD)/minimal
 FRD_MAX := $(FRD)/full
+
+BIN_BN   := $(BIN)/freertos-$(MACH)
+
+APP_BN   := $(BIN_BN)-app
+APP_ELF  := $(APP_BN).elf
+APP_MAP  := $(APP_BN).map
+APP_LST  := $(APP_BN).list
+APP_BIN  := $(APP_BN).bin
+
+UART_BN  := $(BIN_BN)-uart
+UART_ELF := $(UART_BN).elf
+UART_MAP := $(UART_BN).map
+UART_LST := $(UART_BN).list
+UART_BIN := $(UART_BN).bin
 
 C_SRCS_HAL = \
 	$(STM)/Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal.c \
@@ -97,6 +112,7 @@ C_SRCS_FREERTOS_KERNEL = \
 	$(FRK)/event_groups.c \
 	$(FRK)/list.c \
 	$(FRK)/timers.c \
+	$(FRK)/stream_buffer.c \
 	$(FRK)/portable/MemMang/heap_4.c \
 	$(FRK)/portable/GCC/ARM_CM7/r0p1/port.c
 
@@ -115,29 +131,45 @@ C_SRCS_FREERTOS_PLUS_TCPIP = \
 	$(FRT)/portable/NetworkInterface/STM32Fxx/stm32fxx_hal_eth.c \
 	$(FRT)/portable/BufferManagement/BufferAllocation_1.c
 
-#	$(SRC)/stm32f7xx_it.c 
-C_SRCS_APP = \
+
+C_SRCS_APP_CORE = \
 	$(SRC)/stm32f7xx_hal_msp.c \
 	$(SRC)/system_stm32f7xx.c \
 	$(SRC)/app-hardware.c \
+	$(SRC)/app-network.c \
 	$(SRC)/app-kernel-hooks.c \
 	$(SRC)/app-network-hooks.c \
-	$(SRC)/app-main.c \
-	$(SRC)/app-task-blinky.c
+	$(SRC)/app-task-logging.c \
+	$(SRC)/app-task-blinky.c \
+	$(SRC)/app-task-full.c \
+	$(SRC)/app-task-mqtt.c
 
-C_SRCS = \
+C_SRCS_APP = \
 	$(C_SRCS_HAL) \
 	$(C_SRCS_BOARD) \
 	$(C_SRCS_COMPONENTS) \
 	$(C_SRCS_FREERTOS_KERNEL) \
 	$(C_SRCS_FREERTOS_PLUS_TCPIP) \
-	$(C_SRCS_APP)
+	$(C_SRCS_APP_CORE) \
+	$(SRC)/app-main.c
+
+C_SRCS_UART = \
+	$(C_SRCS_HAL) \
+	$(C_SRCS_BOARD) \
+	$(C_SRCS_COMPONENTS) \
+	$(C_SRCS_FREERTOS_KERNEL) \
+	$(C_SRCS_FREERTOS_PLUS_TCPIP) \
+	$(C_SRCS_APP_CORE) \
+	$(SRC)/dem-uart.c
 
 S_SRCS = $(SRC)/startup_stm32f746xx.s
 S_DEPS = $(SRC)/startup_stm32f746xx.s
 
-OBJS  = $(S_SRCS:.s=.o) $(C_SRCS:.c=.o)
-DEPS  = $(S_SRCS:.s=.d) $(C_SRCS:.c=.d)
+APP_OBJS  = $(S_SRCS:.s=.o) $(C_SRCS_APP:.c=.o)
+APP_DEPS  = $(S_SRCS:.s=.d) $(C_SRCS_APP:.c=.d)
+UART_OBJS  = $(S_SRCS:.s=.o) $(C_SRCS_UART:.c=.o)
+UART_DEPS  = $(S_SRCS:.s=.d) $(C_SRCS_UART:.c=.d)
+OBJS = $(APP_OBJS) $(UART_OBJS)
 SUFILES = $(S_SRCS:.s=.su) $(C_SRCS:.c=.su)
 
 INC_PATH = \
