@@ -14,7 +14,7 @@ the queue empty. */
 #define mainQUEUE_LENGTH					( 1 )
 
 
-void vInitializeTaskBlinky();
+void vSetupBlinkyTask( void );
 
 
 /*

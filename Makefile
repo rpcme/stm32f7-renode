@@ -1,17 +1,15 @@
 # -*- makefile -*-
+#.DEFAULT_GOAL: default
+
 include stm32f746.mk
-
-AS = arm-none-eabi-as
-CC = arm-none-eabi-gcc
-
-
-#	-mfpu=fpv5-sp-d16 \
+include arm-none-eabi.mk
 
 C_EXTRA_FLAGS =\
 	-DDEBUG \
 	-g2 \
 	-ggdb \
 	-mcpu=cortex-m7 \
+	-mfpu=fpv5-sp-d16 \
 	-std=gnu11 \
 	-mfloat-abi=hard \
 	-mthumb \
@@ -31,19 +29,11 @@ DEFS = \
 	-DSTM32F7xx \
 	-DSTM32F746xx \
 	-DUSE_HAL_DRIVER
-#	-DipconfigMULTI_INTERFACE=0 \
-#	-DipconfigUSE_IPv6=0 \
-#	-DipconfigUSE_HTTP=0 \
-#	-DipconfigUSE_FTP=0 \
-#	-DHAL_ETH_MODULE_ENABLED=1 \
-#	-DHAL_USART_MODULE_ENABLED=1
 
 CFLAGS = $(C_EXTRA_FLAGS) $(DEFS)
 
 LDFLAGS = \
-	-o "$(BIN)/freertos-stm32f7-renode.elf" \
 	-T"$(APP)/fw/STM32F746NGHX_FLASH.ld" \
-	-Wl,-Map="$(BIN)/freertos-stm32f7-renode.map" \
 	--specs=nosys.specs \
 	-mcpu=cortex-m7 \
 	-mfpu=fpv5-sp-d16 \
@@ -52,28 +42,57 @@ LDFLAGS = \
 	-Wl,--start-group \
 	-Wl,--end-group \
 	-Xlinker --gc-sections \
-	-Xlinker --relax \
-	-Xlinker -s
+	-Xlinker --relax
+#\	-Xlinker -s
 
 LDLIBS = \
 	-lc \
 	-lm
 
 %.o: %.s
-	arm-none-eabi-gcc -mcpu=cortex-m7 -g3 -DDEBUG -c -x assembler-with-cpp -MMD -MP -MF"$(@:%.o=%.d)" -MT"$@" --specs=nano.specs -mfpu=fpv5-sp-d16 -mfloat-abi=hard -mthumb -o "$@" "$<"
+	$(CC) -mcpu=cortex-m7 -g3 -DDEBUG -c -x assembler-with-cpp -MMD -MP -MF"$(@:%.o=%.d)" -MT"$@" --specs=nano.specs -mfpu=fpv5-sp-d16 -mfloat-abi=hard -mthumb -o "$@" "$<"
 
 %.o: %.c
-	arm-none-eabi-gcc "$<" $(CFLAGS) $(INC) -o "$@"
+	$(CC) "$<" $(CFLAGS) $(INC) -o "$@"
 
-default: $(OBJS)
-	mkdir -p $(BIN)
-	arm-none-eabi-gcc $(OBJS) $(LDLIBS) $(LDFLAGS)
-	arm-none-eabi-size   $(BIN)/freertos-stm32f7-renode.elf 
-	arm-none-eabi-objdump -h -S  $(BIN)/freertos-stm32f7-renode.elf  > "$(BIN)/freertos-stm32f7-renode.list"
-	arm-none-eabi-objcopy  -O binary  $(BIN)/freertos-stm32f7-renode.elf  "$(BIN)/freertos-stm32f7-renode.bin"
+.PHONY: default
+default: $(OBJS) setup app uart
+
+.PHONY: app
+app: $(APP_ELF) $(APP_LST) $(APP_BIN)
+
+.PHONY: uart
+uart: $(UART_ELF) $(UART_LST) $(UART_BIN)
+
+$(APP_ELF): $(APP_OBJS)
+	$(CC) $(APP_OBJS) $(LDLIBS) -o $@ -Wl,-Map=$(APP_MAP) $(LDFLAGS)
+	$(SIZE) $(APP_ELF)
+
+$(APP_LST): $(APP_ELF)
+	$(OBJDUMP) $(OBJDUMP_FLAGS) $(APP_ELF) > $(APP_LST)
+
+$(APP_BIN): $(APP_ELF)
+	$(OBJCOPY) $(OBJCOPY_FLAGS) $(APP_ELF) $(APP_BIN)
+
+$(UART_ELF): $(UART_OBJS)
+	$(CC) $(UART_OBJS) $(LDLIBS) -o $@ -Wl,-Map=$(UART_MAP) $(LDFLAGS)
+	$(SIZE) $(UART_ELF)
+
+$(UART_LST): $(UART_ELF)
+	$(OBJDUMP) $(OBJDUMP_FLAGS) $(UART_ELF) > $(UART_LST)
+
+$(UART_BIN): $(UART_ELF)
+	$(OBJCOPY) $(OBJCOPY_FLAGS) $(UART_ELF) $(UART_BIN)
+
+$(BIN):
+	-mkdir -p $(BIN)
+
+setup: $(BIN)
+
 
 .PHONY: clean
 clean:
 	-$(VERBOSE_CMD)$(RM) $(OBJS)
 	-$(VERBOSE_CMD)$(RM) $(DEPS)
 	-$(VERBOSE_CMD)$(RM) $(SUFILES)
+

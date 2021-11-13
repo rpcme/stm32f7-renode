@@ -53,21 +53,22 @@ volatile size_t xFreeHeapSpace;
 
 void vAssertCalled( uint32_t ulLine, const char *pcFile )
 {
-volatile unsigned long ul = 0;
 
-	( void ) pcFile;
-	( void ) ulLine;
+    //volatile unsigned long ul = 1;
 
-	taskENTER_CRITICAL();
-	{
-		/* Set ul to a non-zero value using the debugger to step out of this
-		function. */
-		while( ul == 0 )
-		{
-			__NOP();
-		}
-	}
-	taskEXIT_CRITICAL();
+    //( void ) pcFile;
+    //( void ) ulLine;
+    
+    //taskENTER_CRITICAL();
+    //{
+        /* Set ul to a non-zero value using the debugger to step out of this
+           function. */
+    //    while( ul == 0 )
+    //    {
+    //        __NOP();
+    //    }
+    //}
+    //taskEXIT_CRITICAL();
 }
 /*-----------------------------------------------------------*/
 

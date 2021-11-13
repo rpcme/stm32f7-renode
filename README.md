@@ -53,3 +53,11 @@ done on Ubuntu 20.04.
    st-flash --reset write bin/stm32f746-uart.bin 0x8000000
    ```
    
+
+
+openocd -f board/stm32f7discovery.cfg
+
+monitor reset halt
+
+target remote localhost:3333
+

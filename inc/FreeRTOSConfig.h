@@ -30,7 +30,6 @@
 #define FREERTOS_CONFIG_H
 
 extern uint32_t SystemCoreClock;
-#include "app-hardware.h"
 
 /*-----------------------------------------------------------
  * Application specific definitions.
@@ -126,6 +125,9 @@ to all Cortex-M ports, and do not rely on any particular library functions. */
 /* !!!! configMAX_SYSCALL_INTERRUPT_PRIORITY must not be set to zero !!!!
 See http://www.FreeRTOS.org/RTOS-Cortex-M3-M4.html. */
 #define configMAX_SYSCALL_INTERRUPT_PRIORITY 	( configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY << (8 - configPRIO_BITS) )
+
+
+#define configSUPPORT_DYNAMIC_ALLOCATION 1
 
 /* Definitions that map the FreeRTOS port interrupt handlers to their CMSIS
 standard names. */

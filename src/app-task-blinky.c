@@ -68,7 +68,9 @@
 #include "semphr.h"
 
 #include "app-main.h"
+#include "app-demo.h"
 #include "app-task-blinky.h"
+#include "app-task-logging.h"
 
 /*-----------------------------------------------------------*/
 
@@ -91,7 +93,7 @@ static QueueHandle_t xQueue = NULL;
 
 /*-----------------------------------------------------------*/
 
-void vInitializeTaskBlinky( void )
+void vSetupBlinkyTask( void )
 {
     /* Create the queue. */
     xQueue = xQueueCreate( mainQUEUE_LENGTH, sizeof( uint32_t ) );
@@ -157,7 +159,7 @@ static void prvQueueReceiveTask( void *pvParameters )
            indefinitely provided INCLUDE_vTaskSuspend is set to 1 in
            FreeRTOSConfig.h. */
         xQueueReceive( xQueue, &ulReceivedValue, portMAX_DELAY );
-
+        
         /*  To get here something must have been received from the queue, but
             is it the expected value?  If it is, toggle the LED. */
         if( ulReceivedValue == ulExpectedValue )
