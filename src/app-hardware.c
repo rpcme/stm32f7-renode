@@ -10,7 +10,6 @@
  * against the SDK */
 
 #include "app-hardware.h"
-//#include "stm32f7xx_hal_conf.h"
 #include "FreeRTOSConfig.h"
 
 UART_HandleTypeDef xUARTHandle;
@@ -21,7 +20,9 @@ void prvUART_Init( void );
 void vSetupHardware( void )
 {
     SCB_EnableICache();
-    SCB_EnableDCache();
+
+    // Disabling is recommended for FreeRTOS+TCP.
+    SCB_DisableDCache();
 
     HAL_Init();
 
@@ -30,7 +31,6 @@ void vSetupHardware( void )
     BSP_LED_Init( LED1 );
     BSP_PB_Init(BUTTON_KEY, BUTTON_MODE_GPIO);    
 
-    //xUARTHandle.Instance        = USARTx;
     xUARTHandle.Init.BaudRate   = 115200;
     xUARTHandle.Init.WordLength = UART_WORDLENGTH_8B;
     xUARTHandle.Init.StopBits   = UART_STOPBITS_1;

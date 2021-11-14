@@ -19,24 +19,28 @@
 #include "FreeRTOSConfig.h"
 #include "task.h"
 #include "stream_buffer.h"
+#include "semphr.h"
 
 /* Dimensions the arrays into which print messages are created. */
 #define MAX_PRINT_STRING_LENGTH       255
-#define LOGGING_STREAM_BUFFER_SIZE    32768
+#define LOGGING_STREAM_BUFFER_SIZE    2000
 #define LOGGING_SEGMENT_SIZE          10
-#define LOGGING_STREAM_BLOCK_TIME     10
+#define LOGGING_STREAM_BLOCK_TIME     1000
 #define LOGGING_UART_HANDLE_TYPE      UART_HandleTypeDef
 #define LOGGING_UART_HANDLE_NAME      xUARTHandle
+#define LOGGING_UART_FORMAT          "%lu %lu [%s] %s\r\n"
 
 extern LOGGING_UART_HANDLE_TYPE LOGGING_UART_HANDLE_NAME; // define by hardware setup
 static StreamBufferHandle_t xStreamBuffer = NULL;
+static SemaphoreHandle_t xLoggingSemaphore = NULL;
 
 void vWriteUart( const char * data );
 void vLoggingTask(void * pvParameters);
 
 void vSetupLoggingTask() {
     xStreamBuffer = xStreamBufferCreate( LOGGING_STREAM_BUFFER_SIZE, LOGGING_SEGMENT_SIZE );
-    xTaskCreate( vLoggingTask, "Logger", configMINIMAL_STACK_SIZE * 2, NULL, 0, NULL );
+    xLoggingSemaphore = xSemaphoreCreateMutex();
+    xTaskCreate( vLoggingTask, "Logger", configMINIMAL_STACK_SIZE * 10, NULL, 0, NULL );
 }
 
 void vLoggingTask(void * pvParameters) {
@@ -44,15 +48,18 @@ void vLoggingTask(void * pvParameters) {
     char * ucRxData = pvPortMalloc( LOGGING_SEGMENT_SIZE );
     uint8_t xReceivedBytes = 0;
     
-    vWriteUart( "Starting logging..." );
+    //vWriteUart( "Starting logging...\r\n" );
     for (;;) {
         /* Block on the number of bytes that triggers the unblocked state */
+        //vWriteUart("Blocking until we get enough bytes\r\n" );
         xReceivedBytes = xStreamBufferReceive( xStreamBuffer,
                                                ( void * ) ucRxData,
                                                sizeof( ucRxData ),
                                                LOGGING_STREAM_BLOCK_TIME );
+        //vWriteUart("Should only get hit when bytes available\r\n" );
         if ( xReceivedBytes > 0 )
         {
+            //vWriteUart( "* " );
             vWriteUart( ucRxData );
         }
     }
@@ -65,18 +72,20 @@ void vWriteUart( const char * data )
 
 void vLoggingPrintf( const char * pcFormat, ... )
 {
-    char cPrintString[ MAX_PRINT_STRING_LENGTH ];
-    size_t xLength, xLength2;
-    static BaseType_t xMessageNumber = 0;
-    static BaseType_t xAfterLineBreak = pdTRUE;
-    va_list args;
-    const char * pcTaskName;
-    const char * pcNoTask = "None";
+    char cLogitem[ MAX_PRINT_STRING_LENGTH ];
+    char cLogitemBody[ MAX_PRINT_STRING_LENGTH ];
+    size_t xLogitemBodySize = 0;
+    size_t xLogitemSize = 0;
 
-    /* There are a variable number of parameters. */
-    va_start( args, pcFormat );
+    // Having this storage class is a buggy POS need to change
+    // implementaion to "take a number" method which will need a mutex
+    // Sometimes, you just can't copy code from other demos and just
+    // use it :(
+    static BaseType_t xMessageNumber = 0;
 
     /* Additional info to place at the start of the log. */
+    const char * pcTaskName;
+    const char * pcNoTask = "None";
     if ( xTaskGetSchedulerState() != taskSCHEDULER_NOT_STARTED )
     {
         pcTaskName = pcTaskGetName( NULL );
@@ -86,48 +95,46 @@ void vLoggingPrintf( const char * pcFormat, ... )
         pcTaskName = pcNoTask;
     }
 
-    if( ( xAfterLineBreak == pdTRUE ) && ( strcmp( pcFormat, "\r\n" ) != 0 ) )
-    {
-        xLength = snprintf( cPrintString, MAX_PRINT_STRING_LENGTH, "%lu %lu [%s] ",
-                            xMessageNumber++,
-                            ( unsigned long ) xTaskGetTickCount(),
-                            pcTaskName );
-        xAfterLineBreak = pdFALSE;
-    }
-    else
-    {
-        xLength = 0;
-        memset( cPrintString, 0x00, MAX_PRINT_STRING_LENGTH );
-        xAfterLineBreak = pdTRUE;
-    }
-
-    xLength2 = vsnprintf( cPrintString + xLength, MAX_PRINT_STRING_LENGTH - xLength, pcFormat, args );
-
-    if( xLength2 < 0 )
-    {
-        /* Clean up. */
-        xLength2 = MAX_PRINT_STRING_LENGTH - 1 - xLength;
-        cPrintString[ MAX_PRINT_STRING_LENGTH - 1 ] = '\0';
-    }
-
-    xLength += xLength2;
+    /* Organize the variant-argument value that we want to log */
+    va_list args;
+    va_start( args, pcFormat );
+    xLogitemBodySize = vsnprintf( cLogitemBody,
+                                  MAX_PRINT_STRING_LENGTH,
+                                  pcFormat,
+                                  args );
     va_end( args );
 
-    if ( xTaskGetSchedulerState() != taskSCHEDULER_NOT_STARTED )
+
+    /* Wrap the variable-argument log value in an envelope */
+    xLogitemSize = snprintf( cLogitem,
+                             MAX_PRINT_STRING_LENGTH,
+                             LOGGING_UART_FORMAT,
+                             xMessageNumber++,
+                             ( unsigned long ) xTaskGetTickCount(),
+                             pcTaskName,
+                             cLogitemBody );
+
+
+    if ( xTaskGetSchedulerState() == taskSCHEDULER_NOT_STARTED )
     {
-        vWriteUart( cPrintString );
+        // This should be safe since multiple writers will not exist
+        vWriteUart( cLogitem );
     }
     else
     {
-        taskENTER_CRITICAL();
+        while ( xSemaphoreTake( xLoggingSemaphore, 10 ) != pdPASS )
+        {
+            vTaskDelay( pdMS_TO_TICKS( 10 ) );
+        }
 
         /* Wait until enough bytes are in the stream buffer before writing */
-        while ( xStreamBufferSpacesAvailable( xStreamBuffer ) < strlen( cPrintString ) ) {
+        while ( xStreamBufferSpacesAvailable( xStreamBuffer ) < strlen( cLogitem ) )
+        {
             vTaskDelay( pdMS_TO_TICKS( 10 ) );
         }
 
         /* Write to the buffer */
-    
-        taskEXIT_CRITICAL();
+        xStreamBufferSend( xStreamBuffer, cLogitem, strlen( cLogitem ), pdMS_TO_TICKS( 10 ));
+        xSemaphoreGive( xLoggingSemaphore );
     }
 }

@@ -30,10 +30,11 @@ int main(void)
     task2Props->speed = 200;
     task3Props->speed = 300;
     
-    xTaskCreate( vLogTestTask, "A", configMINIMAL_STACK_SIZE * 2, task1Props, 0, NULL );
-    xTaskCreate( vLogTestTask, "B", configMINIMAL_STACK_SIZE * 2, task2Props, 0, NULL );
-    xTaskCreate( vLogTestTask, "C", configMINIMAL_STACK_SIZE * 2, task3Props, 0, NULL );
+    xTaskCreate( vLogTestTask, "A", configMINIMAL_STACK_SIZE * 3, task1Props, 0, NULL );
+    xTaskCreate( vLogTestTask, "B", configMINIMAL_STACK_SIZE * 3, task2Props, 0, NULL );
+    xTaskCreate( vLogTestTask, "C", configMINIMAL_STACK_SIZE * 3, task3Props, 0, NULL );
 
+    vLoggingPrintf("Starting the scheduler.");
     vTaskStartScheduler();
 
     for ( ;; );
@@ -48,11 +49,11 @@ void vLogTestTask( void * pvParameters )
     pxParameters = ( xsLogging_t * ) pvParameters;
     taskname = pcTaskGetName( NULL );
 
+    vLoggingPrintf("Starting loop for task %s", taskname);
     for (;;)
     {
-        vLoggingPrintf("Task %s Speed %d Iteration %d\r\n", taskname, pxParameters->speed, iteration);
+        vLoggingPrintf("Task %s Speed %d Iteration %d", taskname, pxParameters->speed, iteration);
         ++iteration;
         vTaskDelay( pdMS_TO_TICKS( pxParameters->speed ) );
-
     }
 }
