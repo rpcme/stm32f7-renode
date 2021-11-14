@@ -9,13 +9,21 @@
  * SDK so it's easier to follow when you're comparing the settings
  * against the SDK */
 
+#include "FreeRTOS.h"
 #include "app-hardware.h"
 #include "FreeRTOSConfig.h"
 
 UART_HandleTypeDef xUARTHandle;
+RNG_HandleTypeDef hrng;
+static UBaseType_t ulNextRand;
+uint32_t ulInitialSeed;
+uint32_t ulSeed;
 
 void SystemClock_Config( void );
 void prvUART_Init( void );
+BaseType_t xRandom32( uint32_t *pulValue );
+BaseType_t xApplicationGetRandomNumber( uint32_t *pulValue );
+static void prvSRand( UBaseType_t ulSeed );
 
 void vSetupHardware( void )
 {
@@ -40,6 +48,32 @@ void vSetupHardware( void )
     xUARTHandle.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
     BSP_COM_DeInit(COM1, &xUARTHandle);
     BSP_COM_Init(COM1, &xUARTHandle);
+
+    /* Enable the clock for the RNG. */
+    __HAL_RCC_RNG_CLK_ENABLE();
+    RCC->AHB2ENR |= RCC_AHB2ENR_RNGEN;
+    RNG->CR |= RNG_CR_RNGEN;
+    
+    /* Set the Instance pointer. */
+    hrng.Instance = RNG;
+
+
+
+
+
+
+/* Initialise it. */
+    HAL_RNG_Init( &hrng );
+    /* Get a random number. */
+    HAL_RNG_GenerateRandomNumber( &hrng, &ulSeed );
+    /* And pass it to the rand() function. */
+    //		vSRand( ulSeed );
+    
+    hrng.Instance = RNG;
+    HAL_RNG_Init( &hrng );
+    xRandom32( &ulSeed );
+    prvSRand( ulSeed );
+    ulInitialSeed = ulSeed;
 }
 
 /**
@@ -99,4 +133,34 @@ void SystemClock_Config( void )
     RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV4;
     RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV2;
     configASSERT( HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_7) == HAL_OK );
+}
+
+// thank you hein
+BaseType_t xRandom32( uint32_t *pulValue )
+{
+    return xApplicationGetRandomNumber( pulValue );
+}
+
+BaseType_t xApplicationGetRandomNumber( uint32_t *pulValue )
+{
+HAL_StatusTypeDef xResult;
+BaseType_t xReturn;
+uint32_t ulValue;
+
+	xResult = HAL_RNG_GenerateRandomNumber( &hrng, &ulValue );
+	if( xResult == HAL_OK )
+	{
+		xReturn = pdPASS;
+		*pulValue = ulValue;
+	}
+	else
+	{
+		xReturn = pdFAIL;
+	}
+	return xReturn;
+}
+static void prvSRand( UBaseType_t ulSeed )
+{
+	/* Utility function to seed the pseudo random number generator. */
+	ulNextRand = ulSeed;
 }

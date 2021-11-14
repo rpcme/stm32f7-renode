@@ -69,16 +69,10 @@
 
 #include "app-main.h"
 #include "app-demo.h"
+#include "app-hardware.h"
 #include "app-task-blinky.h"
 #include "app-task-logging.h"
 
-/*-----------------------------------------------------------*/
-
-/*
- * Called by main when mainCREATE_SIMPLE_BLINKY_DEMO_ONLY is set to 1 in
- * main.c.
- */
-void main_blinky( void );
 
 /*
  * The tasks as described in the comments at the top of this file.
@@ -103,18 +97,18 @@ void vSetupBlinkyTask( void )
         for (;;);
     }
 
-    vLoggingPrintf("Creating Rx task.");
+    vLoggingPrintf("Creating Blinky Rx task.");
     xTaskCreate( prvQueueReceiveTask,
                  "Rx",
-                 configMINIMAL_STACK_SIZE,
+                 configMINIMAL_STACK_SIZE * 3,
                  NULL,
                  mainQUEUE_RECEIVE_TASK_PRIORITY,
                  NULL );
 
-    vLoggingPrintf("Creating Tx task.");
+    vLoggingPrintf("Creating Blinky Tx task.");
     xTaskCreate( prvQueueSendTask,
                  "Tx",
-                 configMINIMAL_STACK_SIZE,
+                 configMINIMAL_STACK_SIZE * 3,
                  NULL, mainQUEUE_SEND_TASK_PRIORITY, NULL );
 }
 
@@ -159,12 +153,12 @@ static void prvQueueReceiveTask( void *pvParameters )
            indefinitely provided INCLUDE_vTaskSuspend is set to 1 in
            FreeRTOSConfig.h. */
         xQueueReceive( xQueue, &ulReceivedValue, portMAX_DELAY );
-        
+
         /*  To get here something must have been received from the queue, but
             is it the expected value?  If it is, toggle the LED. */
         if( ulReceivedValue == ulExpectedValue )
         {
-            mainTOGGLE_LED();
+            BSP_LED_Toggle( LED1 );
             ulReceivedValue = 0U;
         }
     }

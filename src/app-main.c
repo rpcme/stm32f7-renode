@@ -57,7 +57,7 @@ int main(void)
        Function implemented in app-task-full.c */
     vSetupFullTask();
 
-    /* Starts a task when /* Starts when APP_PROGRAM_NETWORK == 1
+    /* Starts a task when APP_PROGRAM_NETWORK == 1
        and APP_PROGRAM_FULL == 1 (app-main.h)
        Function implemented in app-task-mqtt */
     vSetupMqttTask();

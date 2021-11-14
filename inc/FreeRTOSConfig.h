@@ -135,8 +135,8 @@ standard names. */
 #define vPortSVCHandler SVC_Handler
 #define xPortSysTickHandler SysTick_Handler
 
-extern void vAssertCalled( uint32_t ulLine, const char *pcFile );
-#define configASSERT( x ) if( ( x ) == 0 ) vAssertCalled( __LINE__, __FILE__ )
+//extern void vAssertCalled( uint32_t ulLine, const char *pcFile );
+//#define configASSERT( x ) if( ( x ) == 0 ) vAssertCalled( __LINE__, __FILE__ )
 
 #endif /* FREERTOS_CONFIG_H */
 

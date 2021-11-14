@@ -10,7 +10,7 @@
 void vApplicationIPNetworkEventHook( eIPCallbackEvent_t eNetworkEvent )
 {
     char cBuffer[ 16 ];
-    static BaseType_t xTasksAlreadyCreated = pdFALSE;
+    //static BaseType_t xTasksAlreadyCreated = pdFALSE;
 
     /* If the network has just come up...*/
     if ( eNetworkEvent == eNetworkUp )
@@ -21,16 +21,16 @@ void vApplicationIPNetworkEventHook( eIPCallbackEvent_t eNetworkEvent )
 
         FreeRTOS_GetAddressConfiguration( &ulIPAddress, &ulNetMask, &ulGatewayAddress, &ulDNSServerAddress );
         FreeRTOS_inet_ntoa( ulIPAddress, cBuffer );
-        vLoggingPrintf( ( "IP Address: %s", cBuffer ) );
+        vLoggingPrintf( "IP Address: %s", cBuffer );
 
         FreeRTOS_inet_ntoa( ulNetMask, cBuffer );
-        vLoggingPrintf( ( "Subnet Mask: %s", cBuffer ) );
+        vLoggingPrintf( "Subnet Mask: %s", cBuffer );
 
         FreeRTOS_inet_ntoa( ulGatewayAddress, cBuffer );
-        vLoggingPrintf( ( "Gateway Address: %s", cBuffer ) );
+        vLoggingPrintf( "Gateway Address: %s", cBuffer );
 
         FreeRTOS_inet_ntoa( ulDNSServerAddress, cBuffer );
-        vLoggingPrintf( ( "DNS Server Address: %s", cBuffer ) );
+        vLoggingPrintf( "DNS Server Address: %s", cBuffer );
     }
 }
 

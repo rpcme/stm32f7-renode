@@ -26,8 +26,8 @@ C_EXTRA_FLAGS =\
 	-fno-builtin-memset
 
 DEFS = \
-	-DSTM32F7xx \
-	-DSTM32F746xx \
+	-DSTM32F7xx=1 \
+	-DSTM32F746xx=1 \
 	-DUSE_HAL_DRIVER
 
 CFLAGS = $(C_EXTRA_FLAGS) $(DEFS)
@@ -64,7 +64,7 @@ app: $(APP_ELF) $(APP_LST) $(APP_BIN)
 .PHONY: uart
 uart: $(UART_ELF) $(UART_LST) $(UART_BIN)
 
-$(APP_ELF): $(APP_OBJS)
+$(APP_ELF): $(APP_OBJS) $(APP)/fw/STM32F746NGHX_FLASH.ld $(APP)/fw/STM32F746NGHX_RAM.ld
 	$(CC) $(APP_OBJS) $(LDLIBS) -o $@ -Wl,-Map=$(APP_MAP) $(LDFLAGS)
 	$(SIZE) $(APP_ELF)
 
@@ -74,7 +74,7 @@ $(APP_LST): $(APP_ELF)
 $(APP_BIN): $(APP_ELF)
 	$(OBJCOPY) $(OBJCOPY_FLAGS) $(APP_ELF) $(APP_BIN)
 
-$(UART_ELF): $(UART_OBJS)
+$(UART_ELF): $(UART_OBJS) $(APP)/fw/STM32F746NGHX_FLASH.ld $(APP)/fw/STM32F746NGHX_RAM.ld
 	$(CC) $(UART_OBJS) $(LDLIBS) -o $@ -Wl,-Map=$(UART_MAP) $(LDFLAGS)
 	$(SIZE) $(UART_ELF)
 

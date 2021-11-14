@@ -46,20 +46,14 @@ void vSetupLoggingTask() {
 void vLoggingTask(void * pvParameters) {
     ( void ) pvParameters;
     char * ucRxData = pvPortMalloc( LOGGING_SEGMENT_SIZE );
-    uint8_t xReceivedBytes = 0;
     
     //vWriteUart( "Starting logging...\r\n" );
     for (;;) {
-        /* Block on the number of bytes that triggers the unblocked state */
-        //vWriteUart("Blocking until we get enough bytes\r\n" );
-        xReceivedBytes = xStreamBufferReceive( xStreamBuffer,
-                                               ( void * ) ucRxData,
-                                               sizeof( ucRxData ),
-                                               LOGGING_STREAM_BLOCK_TIME );
-        //vWriteUart("Should only get hit when bytes available\r\n" );
-        if ( xReceivedBytes > 0 )
+        if ( xStreamBufferReceive( xStreamBuffer,
+                                   ( void * ) ucRxData,
+                                   sizeof( ucRxData ),
+                                   LOGGING_STREAM_BLOCK_TIME ) > 0 )
         {
-            //vWriteUart( "* " );
             vWriteUart( ucRxData );
         }
     }
@@ -74,9 +68,6 @@ void vLoggingPrintf( const char * pcFormat, ... )
 {
     char cLogitem[ MAX_PRINT_STRING_LENGTH ];
     char cLogitemBody[ MAX_PRINT_STRING_LENGTH ];
-    size_t xLogitemBodySize = 0;
-    size_t xLogitemSize = 0;
-
     // Having this storage class is a buggy POS need to change
     // implementaion to "take a number" method which will need a mutex
     // Sometimes, you just can't copy code from other demos and just
@@ -98,22 +89,21 @@ void vLoggingPrintf( const char * pcFormat, ... )
     /* Organize the variant-argument value that we want to log */
     va_list args;
     va_start( args, pcFormat );
-    xLogitemBodySize = vsnprintf( cLogitemBody,
-                                  MAX_PRINT_STRING_LENGTH,
-                                  pcFormat,
-                                  args );
+    vsnprintf( cLogitemBody,
+               MAX_PRINT_STRING_LENGTH,
+               pcFormat,
+               args );
     va_end( args );
 
 
     /* Wrap the variable-argument log value in an envelope */
-    xLogitemSize = snprintf( cLogitem,
-                             MAX_PRINT_STRING_LENGTH,
-                             LOGGING_UART_FORMAT,
-                             xMessageNumber++,
-                             ( unsigned long ) xTaskGetTickCount(),
-                             pcTaskName,
-                             cLogitemBody );
-
+    snprintf( cLogitem,
+              MAX_PRINT_STRING_LENGTH,
+              LOGGING_UART_FORMAT,
+              xMessageNumber++,
+              ( unsigned long ) xTaskGetTickCount(),
+              pcTaskName,
+              cLogitemBody );
 
     if ( xTaskGetSchedulerState() == taskSCHEDULER_NOT_STARTED )
     {

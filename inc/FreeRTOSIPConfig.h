@@ -140,7 +140,7 @@ task.  This setting is less important when the FreeRTOS Win32 simulator is used
 as the Win32 simulator only stores a fixed amount of information on the task
 stack.  FreeRTOS includes optional stack overflow detection, see:
 http://www.freertos.org/Stacks-and-stack-overflow-checking.html */
-#define ipconfigIP_TASK_STACK_SIZE_WORDS	( configMINIMAL_STACK_SIZE * 5 )
+#define ipconfigIP_TASK_STACK_SIZE_WORDS	( configMINIMAL_STACK_SIZE * 20 )
 
 /* ipconfigRAND32() is called by the IP stack to generate random numbers for
 things such as a DHCP transaction number or initial sequence number.  Random
@@ -252,6 +252,8 @@ ipconfigALLOW_SOCKET_SEND_WITHOUT_BIND is set to 0 then calling FreeRTOS_sendto(
 on a socket that has not yet been bound will result in the send operation being
 aborted. */
 #define ipconfigALLOW_SOCKET_SEND_WITHOUT_BIND 1
+
+#define ipconfigUSE_LINKED_RX_MESSAGES                1
 
 /* Defines the Time To Live (TTL) values used in outgoing UDP packets. */
 #define ipconfigUDP_TIME_TO_LIVE		128
@@ -471,10 +473,6 @@ the performance of other TCP/IP stack activity. */
 
 #define ipconfigTCP_MEM_STATS_MAX_ALLOCATION	64
 
-#ifdef __cplusplus
-} /* extern "C" */
-#endif
-
 
 #define configMAC_ADDR0                     0x00
 #define configMAC_ADDR1                     0x11
@@ -482,7 +480,6 @@ the performance of other TCP/IP stack activity. */
 #define configMAC_ADDR3                     0x11
 #define configMAC_ADDR4                     0x11
 #define configMAC_ADDR5                     0x41
-
 
 /* Default IP address configuration.  Used in ipconfigUSE_DNS is set to 0, or
  * ipconfigUSE_DNS is set to 1 but a DNS server cannot be contacted. */
@@ -513,6 +510,12 @@ the performance of other TCP/IP stack activity. */
 #define configNET_MASK2                     0
 #define configNET_MASK3                     0
 
+
+
+
+#ifdef __cplusplus
+} /* extern "C" */
+#endif
 
 
 #endif /* FREERTOS_IP_CONFIG_H */
