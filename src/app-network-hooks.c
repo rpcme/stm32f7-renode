@@ -13,17 +13,12 @@
 #define MESSAGE_INVALID_CHECKSUM "Ping reply received with invalid checksum - identifier %d"
 #define MESSAGE_INVALID_DATA     "Ping reply received with invalid data - identifier %d"
 
-/* Called by FreeRTOS+TCP when the network connects or disconnects.  Disconnect
- * events are only received if implemented in the MAC driver. */
 void vApplicationIPNetworkEventHook( eIPCallbackEvent_t eNetworkEvent )
 {
     char cBuffer[ 16 ];
-    //static BaseType_t xTasksAlreadyCreated = pdFALSE;
 
     if ( eNetworkEvent == eNetworkUp )
     {
-        /* Print out the network configuration, which may have come from a DHCP
-         * server. */
         uint32_t ulIPAddress, ulNetMask, ulGatewayAddress, ulDNSServerAddress;
 
         FreeRTOS_GetAddressConfiguration( &ulIPAddress, &ulNetMask, &ulGatewayAddress, &ulDNSServerAddress );
