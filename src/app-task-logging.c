@@ -72,7 +72,7 @@ void vLoggingPrintf( const char * pcFormat, ... )
     // implementaion to "take a number" method which will need a mutex
     // Sometimes, you just can't copy code from other demos and just
     // use it :(
-    static BaseType_t xMessageNumber = 0;
+    static long unsigned int xMessageNumber = 0;
 
     /* Additional info to place at the start of the log. */
     const char * pcTaskName;
