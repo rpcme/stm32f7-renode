@@ -5,6 +5,14 @@
 #include "FreeRTOS_Sockets.h"
 #include "app-task-logging.h"
 
+#define MESSAGE_IP_ADDRESS       "IP Address: %s"
+#define MESSAGE_SUBNET_MASK      "Subnet Mask: %s"
+#define MESSAGE_GW_ADDRESS       "Gateway Address: %s"
+#define MESSAGE_DNS_ADDRESS      "DNS Server Address: %s"
+#define MESSAGE_PING_SUCCESS     "Ping reply received - identifier %d"
+#define MESSAGE_INVALID_CHECKSUM "Ping reply received with invalid checksum - identifier %d"
+#define MESSAGE_INVALID_DATA     "Ping reply received with invalid data - identifier %d"
+
 /* Called by FreeRTOS+TCP when the network connects or disconnects.  Disconnect
  * events are only received if implemented in the MAC driver. */
 void vApplicationIPNetworkEventHook( eIPCallbackEvent_t eNetworkEvent )
@@ -12,7 +20,6 @@ void vApplicationIPNetworkEventHook( eIPCallbackEvent_t eNetworkEvent )
     char cBuffer[ 16 ];
     //static BaseType_t xTasksAlreadyCreated = pdFALSE;
 
-    /* If the network has just come up...*/
     if ( eNetworkEvent == eNetworkUp )
     {
         /* Print out the network configuration, which may have come from a DHCP
@@ -20,51 +27,36 @@ void vApplicationIPNetworkEventHook( eIPCallbackEvent_t eNetworkEvent )
         uint32_t ulIPAddress, ulNetMask, ulGatewayAddress, ulDNSServerAddress;
 
         FreeRTOS_GetAddressConfiguration( &ulIPAddress, &ulNetMask, &ulGatewayAddress, &ulDNSServerAddress );
+
         FreeRTOS_inet_ntoa( ulIPAddress, cBuffer );
-        vLoggingPrintf( "IP Address: %s", cBuffer );
+        vLoggingPrintf( MESSAGE_IP_ADDRESS, cBuffer );
 
         FreeRTOS_inet_ntoa( ulNetMask, cBuffer );
-        vLoggingPrintf( "Subnet Mask: %s", cBuffer );
+        vLoggingPrintf( MESSAGE_SUBNET_MASK, cBuffer );
 
         FreeRTOS_inet_ntoa( ulGatewayAddress, cBuffer );
-        vLoggingPrintf( "Gateway Address: %s", cBuffer );
+        vLoggingPrintf( MESSAGE_GW_ADDRESS, cBuffer );
 
         FreeRTOS_inet_ntoa( ulDNSServerAddress, cBuffer );
-        vLoggingPrintf( "DNS Server Address: %s", cBuffer );
+        vLoggingPrintf( MESSAGE_DNS_ADDRESS, cBuffer );
     }
 }
 
 
 void vApplicationPingReplyHook( ePingReplyStatus_t eStatus, uint16_t usIdentifier )
 {
-    static const uint8_t *pcSuccess = ( uint8_t * ) "Ping reply received - ";
-    static const uint8_t *pcInvalidChecksum = ( uint8_t * ) "Ping reply received with invalid checksum - ";
-    static const uint8_t *pcInvalidData = ( uint8_t * ) "Ping reply received with invalid data - ";
-    static uint8_t cMessage[ 50 ];
-
-
     switch( eStatus )
     {
-    case eSuccess   :
-        FreeRTOS_debug_printf( ( ( char * ) pcSuccess ) );
+    case eSuccess:
+        vLoggingPrintf( MESSAGE_PING_SUCCESS, usIdentifier );
         break;
-        
-    case eInvalidChecksum :
-        FreeRTOS_debug_printf( ( ( char * ) pcInvalidChecksum ) );
+    case eInvalidChecksum:
+        vLoggingPrintf( MESSAGE_INVALID_CHECKSUM, usIdentifier );
         break;
-        
-    case eInvalidData :
-        FreeRTOS_debug_printf( ( ( char * ) pcInvalidData ) );
-        break;
-        
-    default :
-        /* It is not possible to get here as all enums have their own
-           case. */
+    case eInvalidData:
+        vLoggingPrintf( MESSAGE_INVALID_DATA, usIdentifier );
         break;
     }
-    
-    sprintf( ( char * ) cMessage, "identifier %d", ( int ) usIdentifier );
-    FreeRTOS_debug_printf( ( ( char * ) cMessage ) );
 }
 
 BaseType_t xApplicationDNSQueryHook( const char * pcName )
