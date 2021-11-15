@@ -346,7 +346,7 @@ disconnecting stage will timeout after a period of non-activity. */
 #define ipconfigTCP_KEEP_ALIVE				( 1 )
 #define ipconfigTCP_KEEP_ALIVE_INTERVAL		( 20 ) /* in seconds */
 
-#define ipconfigUSE_DHCP_HOOK				( 0 )
+#define ipconfigUSE_DHCP_HOOK				( 1 )
 
 /* The example IP trace macros are included here so the definitions are
 available in all the FreeRTOS+TCP source files. */
