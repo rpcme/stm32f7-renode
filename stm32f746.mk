@@ -129,8 +129,7 @@ C_SRCS_FREERTOS_PLUS_TCPIP = \
 	$(FRT)/portable/NetworkInterface/Common/phyHandling.c \
 	$(FRT)/portable/NetworkInterface/STM32Fxx/NetworkInterface.c \
 	$(FRT)/portable/NetworkInterface/STM32Fxx/stm32fxx_hal_eth.c \
-	$(FRT)/portable/BufferManagement/BufferAllocation_1.c
-
+	$(FRT)/portable/BufferManagement/BufferAllocation_2.c
 
 C_SRCS_APP_CORE = \
 	$(SRC)/stm32f7xx_hal_msp.c \
