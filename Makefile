@@ -86,10 +86,9 @@ $(UART_BIN): $(UART_ELF)
 	$(OBJCOPY) $(OBJCOPY_FLAGS) $(UART_ELF) $(UART_BIN)
 
 $(BIN):
-	-mkdir -p $(BIN)
+	-mkdir $(BIN)
 
 setup: $(BIN)
-
 
 .PHONY: clean
 clean:
