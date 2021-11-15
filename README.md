@@ -39,6 +39,13 @@ done on Ubuntu 20.04.
    ```bash
    sudo apt-get install stlink-tools
    ```
+4. Remove the driver header file from the STMicro Cube
+   SDK. FreeRTOS+TCP provides the same. Not removing the file will
+   cause a stellar failure.
+   
+   ```bash
+   rm STM32CubeF7/Drivers/STM32F7xx_HAL_Driver/Inc/stm32f7xx_hal_eth.h
+   ```
 4. Set PATH to include the Arm GCC toolchain.
 5. Change directory to the application repository.
 6. Build the application.

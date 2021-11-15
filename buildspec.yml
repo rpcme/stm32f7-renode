@@ -14,8 +14,7 @@ phases:
       - ./repo init -u https://github.com/rpcme/stm32f7-renode
       - ./repo sync
       - export PATH=$(pwd)/gcc-arm-none-eabi-10.3-2021.10/bin:$PATH
-      - mkdir obj
-      - mkdir bin
+      - rm STM32CubeF7/Drivers/STM32F7xx_HAL_Driver/Inc/stm32f7xx_hal_eth.h
       - cd ${CODEBUILD_SRC_DIR}
       - make
 artifacts:
