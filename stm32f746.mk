@@ -93,13 +93,13 @@ C_SRCS_HAL = \
 C_SRCS_BOARD = \
 	$(STM)/Drivers/BSP/STM32746G-Discovery/stm32746g_discovery.c \
 	$(STM)/Drivers/BSP/STM32746G-Discovery/stm32746g_discovery_audio.c \
-	$(STM)/Drivers/BSP/STM32746G-Discovery/stm32746g_discovery_camera.c \
 	$(STM)/Drivers/BSP/STM32746G-Discovery/stm32746g_discovery_eeprom.c \
 	$(STM)/Drivers/BSP/STM32746G-Discovery/stm32746g_discovery_lcd.c \
-	$(STM)/Drivers/BSP/STM32746G-Discovery/stm32746g_discovery_qspi.c \
 	$(STM)/Drivers/BSP/STM32746G-Discovery/stm32746g_discovery_sd.c \
 	$(STM)/Drivers/BSP/STM32746G-Discovery/stm32746g_discovery_sdram.c \
 	$(STM)/Drivers/BSP/STM32746G-Discovery/stm32746g_discovery_ts.c
+#	$(STM)/Drivers/BSP/STM32746G-Discovery/stm32746g_discovery_camera.c \
+#	$(STM)/Drivers/BSP/STM32746G-Discovery/stm32746g_discovery_qspi.c \
 
 C_SRCS_COMPONENTS = \
 	$(STM)/Drivers/BSP/Components/ft5336/ft5336.c \
