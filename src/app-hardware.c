@@ -123,7 +123,8 @@ void SystemClock_Config( void )
     HAL_RCC_OscConfig(&RCC_OscInitStruct);
 
     /* activate the OverDrive */
-    configASSERT( HAL_PWREx_ActivateOverDrive() != HAL_OK);
+    //configASSERT( HAL_PWREx_ActivateOverDrive() != HAL_OK);
+    HAL_PWREx_ActivateOverDrive();
     
     /* Select PLL as system clock source and configure the HCLK, PCLK1 and PCLK2
        clocks dividers */
@@ -132,7 +133,8 @@ void SystemClock_Config( void )
     RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
     RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV4;
     RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV2;
-    configASSERT( HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_7) == HAL_OK );
+    //configASSERT( HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_7) == HAL_OK );
+    HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_7);
 }
 
 // thank you hein
@@ -163,4 +165,51 @@ static void prvSRand( UBaseType_t ulSeed )
 {
 	/* Utility function to seed the pseudo random number generator. */
 	ulNextRand = ulSeed;
+}
+
+void HAL_ETH_MspInit(ETH_HandleTypeDef *heth)
+{
+  GPIO_InitTypeDef GPIO_InitStructure;
+  
+  /* Enable GPIOs clocks */
+  __HAL_RCC_GPIOA_CLK_ENABLE();
+  __HAL_RCC_GPIOC_CLK_ENABLE();
+  __HAL_RCC_GPIOG_CLK_ENABLE();
+
+/* Ethernet pins configuration ************************************************/
+  /*
+        RMII_REF_CLK ----------------------> PA1
+        RMII_MDIO -------------------------> PA2
+        RMII_MDC --------------------------> PC1
+        RMII_MII_CRS_DV -------------------> PA7
+        RMII_MII_RXD0 ---------------------> PC4
+        RMII_MII_RXD1 ---------------------> PC5
+        RMII_MII_RXER ---------------------> PG2
+        RMII_MII_TX_EN --------------------> PG11
+        RMII_MII_TXD0 ---------------------> PG13
+        RMII_MII_TXD1 ---------------------> PG14
+  */
+
+  /* Configure PA1, PA2 and PA7 */
+  GPIO_InitStructure.Speed = GPIO_SPEED_HIGH;
+  GPIO_InitStructure.Mode = GPIO_MODE_AF_PP;
+  GPIO_InitStructure.Pull = GPIO_NOPULL; 
+  GPIO_InitStructure.Alternate = GPIO_AF11_ETH;
+  GPIO_InitStructure.Pin = GPIO_PIN_1 | GPIO_PIN_2 | GPIO_PIN_7;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStructure);
+  
+  /* Configure PC1, PC4 and PC5 */
+  GPIO_InitStructure.Pin = GPIO_PIN_1 | GPIO_PIN_4 | GPIO_PIN_5;
+  HAL_GPIO_Init(GPIOC, &GPIO_InitStructure);
+
+  /* Configure PG2, PG11, PG13 and PG14 */
+  GPIO_InitStructure.Pin =  GPIO_PIN_2 | GPIO_PIN_11 | GPIO_PIN_13 | GPIO_PIN_14;
+  HAL_GPIO_Init(GPIOG, &GPIO_InitStructure);
+  
+  /* Enable the Ethernet global Interrupt */
+  HAL_NVIC_SetPriority(ETH_IRQn, 0x7, 0);
+  HAL_NVIC_EnableIRQ(ETH_IRQn);
+  
+  /* Enable ETHERNET clock  */
+  __HAL_RCC_ETH_CLK_ENABLE();
 }
