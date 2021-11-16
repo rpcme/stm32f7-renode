@@ -511,7 +511,7 @@ the performance of other TCP/IP stack activity. */
 #define configNET_MASK3                     0
 
 
-
+#define configEMAC_TASK_STACK_SIZE    ( 3 * configMINIMAL_STACK_SIZE )
 
 #ifdef __cplusplus
 } /* extern "C" */
