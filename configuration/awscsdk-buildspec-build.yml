@@ -20,6 +20,9 @@ phases:
       - chmod +x repo
       - ./repo init --submodules -u https://github.com/rpcme/stm32f7-renode -m configuration/stm32f7-repo.xml
       - ./repo sync --fetch-submodules
+      - mkdir credentials
+      - cd ${CODEBUILD_SRC_DIR}/../aws-iot-device-sdk-embedded-C
+      - cmake -S. -Bbuild
 artifacts:
   s3-prefix: images
   files: bin/*
