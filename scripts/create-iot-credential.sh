@@ -162,14 +162,13 @@ function store_secret {
     privatekey=$(base64 --wrap=0 ${privatekey_file})
 
     cat <<OUT > /tmp/secret_string.json
-{
- "thing_name" = "${thing_name}",
- "thing_arn" = "${thing_arn}",
- "certificate" = "${certificate}",
- "certificate_arn" = "${certificate_arn}",
- "privatekey" = "${privatekey}",
- "iotcore_endpoint" = "${iotcore_endpoint}",
- "da_endpoint" = "${da_endpoint}"
+{ "thing_name" : "${thing_name}",
+  "thing_arn" : "${thing_arn}",
+  "certificate" : "${certificate}",
+  "certificate_arn" : "${certificate_arn}",
+  "privatekey" : "${privatekey}",
+  "iotcore_endpoint" : "${iotcore_endpoint}",
+  "da_endpoint" : "${da_endpoint}"
 }
 OUT
 

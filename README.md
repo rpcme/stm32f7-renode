@@ -29,6 +29,26 @@ mydevice=$(uuidgen)
     -s da-credential-${mydevice}
 ```
 
+when you have access to the secret, you can retrieve essential values
+for doing builds and tests:
+
+```bash
+aws secretsmanager get-secret-value \
+    --secret-id ${my_secret_name} \
+    --query SecretString \
+    --output text | jq -r .privatekey | base64 -d
+
+aws secretsmanager get-secret-value
+    --secret-id ${my_secret_name} \
+    --query SecretString \
+    --output text | jq -r .certificate | base64 -d
+
+aws secretsmanager get-secret-value \
+    --secret-id ${my_secret_name} \
+    --query SecretString \
+    --output text | jq -r .iotcore_endpoint
+```
+
 ## Building and flashing the firmware
 
 The firmware uses STM32Cube SDK, STLINK tools (for verifying on
