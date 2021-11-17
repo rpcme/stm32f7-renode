@@ -5,9 +5,9 @@ phases:
     commands:
       - git config --global user.name "Cloudy Builder"
       - git config --global user.email "email@example.com"
-      - sudo apt-get -y install gpg wget
+      - apt-get -y install gpg wget
       - echo 'deb [signed-by=/usr/share/keyrings/kitware-archive-keyring.gpg] https://apt.kitware.com/ubuntu/ bionic main' | sudo tee /etc/apt/sources.list.d/kitware.list >/dev/null
-      - sudo apt-get update
+      - apt-get update
       - rm /usr/share/keyrings/kitware-archive-keyring.gpg
       - apt-get -y install kitware-archive-keyring
       - apt-get update
