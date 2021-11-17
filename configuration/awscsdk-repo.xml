@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<manifest>
+  <default sync-j="4" />
+  
+  <remote name="aws"  fetch="git://github.com/aws" />
+
+  <project remote="aws"
+	   revision="202108.00"
+           name="aws-iot-device-sdk-embedded-C"
+           path="aws-iot-device-sdk-embedded-C" />
+</manifest>
