@@ -6,6 +6,29 @@ CodePipeline, AWS CodeCommit and GitHub, AWS CodeBuild, and AWS IoT
 Device Advisor. The focus of the project is to show how to use AWS IoT
 Device Advisor for Integration test as the Continuous Delivery gate.
 
+
+## Preparing AWS artifacts
+
+Create AWS IoT credentials for AWS IoT Core. If you're using AWS IoT
+Device Advisor, you will use the same credentials but point the app to
+a suite-specific endpoint.
+
+Use the -F flag if you have a lot of objects in your IoT Core
+registry. Otherwise... things could take quite a long time...
+
+```bash
+cd scripts
+mkdir -p $(pwd)/../credentials
+mydevice=$(uuidgen)
+./create-iot-credential.sh \
+    -F \
+    -t ${mydevice} \
+    -n awscsdk-mqtt-policy \
+    -f $(pwd)/../configuration/awscsdk-iotcore-policy.json \
+    -o $(pwd)/../credentials \
+    -s da-credential-${mydevice}
+```
+
 ## Building and flashing the firmware
 
 The firmware uses STM32Cube SDK, STLINK tools (for verifying on
