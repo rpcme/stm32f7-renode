@@ -1,0 +1,24 @@
+version: 0.2
+phases:
+  pre_build:
+    run-as: root
+    commands:
+      - git config --global user.name "Cloudy Builder"
+      - git config --global user.email "email@example.com"
+      - sudo apt-get -y install gpg wget
+      - wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - | sudo tee /usr/share/keyrings/kitware-archive-keyring.gpg >/dev/null
+      - echo 'deb [signed-by=/usr/share/keyrings/kitware-archive-keyring.gpg] https://apt.kitware.com/ubuntu/ focal main' | sudo tee /etc/apt/sources.list.d/kitware.list >/dev/null
+      - rm /usr/share/keyrings/kitware-archive-keyring.gpg
+      - apt-get -y install kitware-archive-keyring
+      - apt-get update
+      - apt-get -y install cmake
+  build:
+    commands:
+      - cd ${CODEBUILD_SRC_DIR}/..
+      - curl https://storage.googleapis.com/git-repo-downloads/repo > repo
+      - chmod +x repo
+      - ./repo init --submodules -u https://github.com/rpcme/stm32f7-renode -m configuration/stm32f7-repo.xml
+      - ./repo sync --fetch-submodules
+artifacts:
+  s3-prefix: images
+  files: bin/*
