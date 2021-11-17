@@ -5,7 +5,7 @@
   <remote name="aws"  fetch="git://github.com/aws" />
 
   <project remote="aws"
-	   revision="202108.00"
+	   revision="refs/202108.00"
            name="aws-iot-device-sdk-embedded-C"
            path="aws-iot-device-sdk-embedded-C" />
 </manifest>
