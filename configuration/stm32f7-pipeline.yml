@@ -1,0 +1,30 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Resources:
+  MyEmbeddedSourceRepo:
+    Type: AWS::CodeCommit::Repository
+    Properties:
+      RepositoryName: MyEmbeddedSourceRepo
+  MyEmbeddedConfigRepo:
+    Type: AWS::CodeCommit::Repository
+    Properties:
+      RepositoryName: MyEmbeddedConfigRepo
+  MyEmbeddedCICDPipelineRole:
+    
+  MyEmbeddedCICDPipeline:
+    Type: AWS::CodePipeline::Pipeline
+    Properties:
+      Name: MyEmbeddedCICDPipeline
+      RestartExecutionOnUpdate: True
+      RoleArn: !Ref MyEmbeddedCICDPipelineRole
+      Stages:
+        -
+          Name: Source
+          Actions:
+            -
+              Name: Checkout sources
+              ActionTypeId:
+                Category: Source
+                Owner: AWS
+                Provider: CodeCommit
+                Version: 1
+          
