@@ -6,7 +6,7 @@ phases:
       - git config --global user.name "Cloudy Builder"
       - git config --global user.email "email@example.com"
       - apt-get -y install gpg wget
-      - echo 'deb [signed-by=/usr/share/keyrings/kitware-archive-keyring.gpg] https://apt.kitware.com/ubuntu/ bionic main' | sudo tee /etc/apt/sources.list.d/kitware.list >/dev/null
+      - echo 'deb [signed-by=/usr/share/keyrings/kitware-archive-keyring.gpg] https://apt.kitware.com/ubuntu/ bionic main' | tee /etc/apt/sources.list.d/kitware.list >/dev/null
       - apt-get update
       - rm /usr/share/keyrings/kitware-archive-keyring.gpg
       - apt-get -y install kitware-archive-keyring
