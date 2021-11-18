@@ -24,6 +24,7 @@ function usage()
 }
 
 FORCE=0
+volatile_dir=$(dirname $0)/../../volatile
 
 while getopts "eFo:t:n:f:h:s:" opt; do
     case ${opt} in
@@ -36,6 +37,8 @@ while getopts "eFo:t:n:f:h:s:" opt; do
         n)  POLICY_NAME=$OPTARG
             ;;
         s)  SECRET_NAME=$OPTARG
+            ;;
+        o)  volatile_dir=$OPTARG
             ;;
         h)  usage 0
             ;;
@@ -160,7 +163,8 @@ function store_secret {
     # make key and certificate storable
     certificate=$(base64 --wrap=0 ${certificate_file})
     privatekey=$(base64 --wrap=0 ${privatekey_file})
-
+    secret_name="/CodeBuild/da_cred_${thing_name}"
+    
     cat <<OUT > /tmp/secret_string.json
 { "thing_name" : "${thing_name}",
   "thing_arn" : "${thing_arn}",
@@ -175,10 +179,15 @@ OUT
     #    secret_string=$(cat /tmp/secret_string.json)
     secret_arn=$(aws secretsmanager create-secret \
                      --secret-string file:///tmp/secret_string.json \
-                     --name da_cred_${thing_name} \
+                     --name ${secret_name} \
                      --description "Credentials for Device Advisor" \
                      --output text --query ARN)
     echo Secret ARN: ${secret_arn}
+    echo VARIABLES for AWS CODEBUILD:
+    echo name: [certificate] value: [${secret_name}:certificate]
+    echo name: [privatekey] value: [${secret_name}:privatekey]
+    echo name: [iotcore_endpoint] value: [${secret_name}:iotcore_endpoint]
+    echo name: [da_endpoint] value: [${secret_name}:da_endpoint]
 }
 
 function export_variants {
@@ -202,7 +211,6 @@ function export_variants {
 #
 # Directory where all volatile artifacts reside.
 
-volatile_dir=$(dirname $0)/../../volatile
 mkdir -p ${volatile_dir}/${THING_NAME}
 
 certificate_file=${volatile_dir}/${THING_NAME}/${THING_NAME}.crt.pem
