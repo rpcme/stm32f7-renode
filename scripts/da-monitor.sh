@@ -65,6 +65,12 @@ while test ${IN_PROGRESS} == 1; do
     elif test x"${overall_status}" == x${STATUS_PASS}; then
         MONITOR_STATUS=0
         IN_PROGRESS=0
+    elif test x"${overall_status}" == x${STATUS_STOPPING}; then
+        MONITOR_STATUS=1
+        IN_PROGRESS=0
+    elif test x"${overall_status}" == x${STATUS_STOPPED}; then
+        MONITOR_STATUS=1
+        IN_PROGRESS=0
     else
         echo Sleeping 10 seconds for the next status.
         sleep 10
