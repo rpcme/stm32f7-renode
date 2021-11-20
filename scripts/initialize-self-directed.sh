@@ -29,3 +29,28 @@ git submodule update --init --recursive
 cd ${basedir}
 
 git clone https://github.com/rpcme/stm32f7-renode myapp-config
+
+mkdir ${basedir}/myapp-core/configuration
+cp ${basedir}/myapp-config/configuration/awscsdk-buildspec-build.yml ${basedir}/myapp-core/configuration
+cp ${basedir}/myapp-config/configuration/awscsdk-buildspec-test.yml ${basedir}/myapp-core/configuration
+
+mkdir ${basedir}/myapp-core/scripts
+cp ${basedir}/myapp-config/scripts/da-monitor.sh ${basedir}/myapp-core/scripts
+
+cd ${basedir}/myapp-core
+git add configuration/awscsdk-buildspec-build.yml configuration/awscsdk-buildspec-test.yml scripts/da-monitor.sh
+git commit -m"automation artifacts" configuration/awscsdk-buildspec-build.yml configuration/awscsdk-buildspec-test.yml scripts/da-monitor.sh
+git push
+
+cd ${basedir}
+mkdir ${basedir}/credentials
+mydevice=$(uuidgen)
+myapp-config/scripts/create-iot-credential.sh \
+    -F \
+    -t ${mydevice} \
+    -n awscsdk-mqtt-policy \
+    -f ${basedir}/myapp-config/configuration/awscsdk-iotcore-policy.json \
+    -o ${basedir}/credentials \
+    -s da-credential-${mydevice} \
+    > ${basedir}/credentials/log
+
