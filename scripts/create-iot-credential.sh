@@ -158,7 +158,7 @@ function store_secret {
     certificate_arn=$3
     certificate_file=$4
     privatekey_file=$5
-    iotcore_endpoint=$(aws iot describe-endpoint --endpoint-type iot:Data-ATS --output text --query endpointAddress)
+    iotcore_endpoint=$6
     da_endpoint=
     # make key and certificate storable
     certificate=$(base64 --wrap=0 ${certificate_file})
@@ -203,12 +203,6 @@ function export_variants {
     _certificate_arn=$7
     _export_file=${_volatile_dir}/${_thing_name}/exports
 
-    echo "THING_NAME=${_thing_name}"            > ${_export_file}
-    echo "THING_ARN=${_thing_arn}"             >> ${_export_file}
-    echo "POLICY_NAME=${_policy_name}"         >> ${_export_file}
-    echo "POLICY_ARN=${_policy_arn}"           >> ${_export_file}
-    echo "CERTIFICATE_ID=${_certificate_id}"   >> ${_export_file}
-    echo "CERTIFICATE_ARN=${_certificate_arn}" >> ${_export_file}
 }
 
 #
@@ -283,9 +277,22 @@ fi
 
 link_objects
 
+iotcore_endpoint=$(aws iot describe-endpoint --endpoint-type iot:Data-ATS --output text --query endpointAddress)
+
 if test ! -z ${SECRET_NAME}; then
-    store_secret ${THING_NAME} ${THING_ARN} ${CERTIFICATE_ARN} ${certificate_file} ${privkey_file}
+    store_secret ${THING_NAME} ${THING_ARN} ${CERTIFICATE_ARN} ${certificate_file} ${privkey_file} ${iotcore_endpoint}
 fi
 
-export_variants "${volatile_dir}" "$THING_NAME" "$THING_ARN" "$POLICY_NAME" \
-                "$POLICY_ARN" "$CERTIFICATE_ID" "$CERTIFICATE_ARN"
+EXPORTS_FILE=${volatile_dir}/${THING_NAME}/exports
+echo "THING_NAME=${THING_NAME}"              > ${EXPORTS_FILE}
+echo "THING_ARN=${THING_ARN}"               >> ${EXPORTS_FILE}
+echo "POLICY_NAME=${POLICY_NAME}"           >> ${EXPORTS_FILE}
+echo "POLICY_ARN=${POLICY_ARN}"             >> ${EXPORTS_FILE}
+echo "CERTIFICATE_ID=${CERTIFICATE_ID}"     >> ${EXPORTS_FILE}
+echo "CERTIFICATE_ARN=${CERTIFICATE_ARN}"   >> ${EXPORTS_FILE}
+echo "CERTIFICATE_FILE=${certificate_file}" >> ${EXPORTS_FILE}
+echo "PRIVATEKEY_FILE=${certificate_file}"  >> ${EXPORTS_FILE}
+echo "IOTCORE_ENDPOINT=${iotcore_endpoint}" >> ${EXPORTS_FILE}
+
+echo source the exports file for easy credential handling, i.e.
+echo . ${EXPORTS_FILE}
