@@ -1,0 +1,56 @@
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "stanza0",
+            "Effect": "Allow",
+            "Action": "codecommit:GitPull",
+            "Resource": "arn:aws:codecommit:REGION:ACCOUNT_ID:myapp-core"
+        },
+        {
+            "Sid": "stanza1",
+            "Effect": "Allow",
+            "Action": "iam:PassRole",
+            "Resource": "DA_ROLE",
+            "Condition": {
+                "StringEquals": {
+                    "iam:PassedToService": "iotdeviceadvisor.amazonaws.com"
+                }
+            }
+        },
+        {
+            "Sid": "stanza2",
+            "Effect": "Allow",
+            "Action": [
+                "iam:ListRoles",
+                "iot:Connect",
+                "logs:DescribeLogStreams",
+                "iot:DescribeThing",
+                "iot:DescribeCertificate",
+                "logs:CreateLogGroup",
+                "logs:DescribeLogGroups",
+                "logs:PutLogEvents",
+                "iot:DescribeEndpoint",
+                "execute-api:Invoke*",
+                "logs:CreateLogStream",
+                "iot:ListPrincipalPolicies",
+                "iot:ListThingPrincipals",
+                "iot:ListThings",
+                "iot:Publish",
+                "iot:CreateJob",
+                "iot:DescribeJob",
+                "iot:ListCertificates",
+                "iot:ListAttachedPolicies",
+                "iot:UpdateThingShadow",
+                "iot:GetPolicy"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Sid": "stanza3",
+            "Effect": "Allow",
+            "Action": "iotdeviceadvisor:*",
+            "Resource": "*"
+        }
+    ]
+}

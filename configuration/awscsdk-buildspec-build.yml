@@ -5,24 +5,25 @@ phases:
     commands:
       - git config --global user.name "Cloudy Builder"
       - git config --global user.email "email@example.com"
-      - apt-get -y install gpg wget
-      - wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - | tee /usr/share/keyrings/kitware-archive-keyring.gpg >/dev/null
-      - echo 'deb [signed-by=/usr/share/keyrings/kitware-archive-keyring.gpg] https://apt.kitware.com/ubuntu/ focal main' | tee /etc/apt/sources.list.d/kitware.list >/dev/null
-      - apt-get update
-      - rm /usr/share/keyrings/kitware-archive-keyring.gpg
-      - apt-get -y install kitware-archive-keyring
-      - apt-get update
-      - apt-get -y install cmake
+      - yum remove -y openssl-devel
+      - yum install -y jq openssl11 openssl11-devel
   build:
     commands:
-      - cd ${CODEBUILD_SRC_DIR}/..
-      - curl https://storage.googleapis.com/git-repo-downloads/repo > repo
-      - chmod +x repo
-      - ./repo init --submodules -u https://github.com/rpcme/stm32f7-renode -m configuration/stm32f7-repo.xml
-      - ./repo sync --fetch-submodules
-      - mkdir credentials
-      - cd ${CODEBUILD_SRC_DIR}/../aws-iot-device-sdk-embedded-C
-      - cmake -S. -Bbuild
+      - wget https://github.com/Kitware/CMake/releases/download/v3.21.4/cmake-3.21.4-linux-x86_64.sh
+      - mkdir ${CODEBUILD_SRC_DIR}/../cmake
+      - sh ./cmake-3.21.4-linux-x86_64.sh --skip-license --prefix=${CODEBUILD_SRC_DIR}/../cmake
+      - export PATH=${CODEBUILD_SRC_DIR}/../cmake/bin:$PATH
+      - mkdir ${CODEBUILD_SRC_DIR}/credentials
+      - echo ${certificate} | base64 -d > /etc/cert.pem
+      - echo ${privatekey} | base64 -d > /etc/key.pem
+      - cd ${CODEBUILD_SRC_DIR}
+      - git submodule update --init --recursive
+      - cmake -S . -Bbuild -DBUILD_TESTS=0 -DAWS_IOT_ENDPOINT="${da_endpoint}" -DCLIENT_CERT_PATH="/etc/cert.pem" -DCLIENT_PRIVATE_KEY_PATH="/etc/key.pem"
+      - cd build
+      - make mqtt_demo_mutual_auth
 artifacts:
   s3-prefix: images
-  files: bin/*
+  files:
+    - build/bin/*
+    - build/lib/*
+    - build/bin/certificates/*

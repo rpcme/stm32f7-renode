@@ -1,0 +1,14 @@
+version: 0.2
+phases:
+  pre_build:
+    run-as: root
+    commands:
+      - git config --global user.name "Cloudy Builder"
+      - git config --global user.email "email@example.com"
+      - yum install -y jq openssl11
+  build:
+    commands:
+      - ls -lR ${CODEBUILD_SRC_DIR_BuildArtifact}
+      - cd ${CODEBUILD_SRC_DIR_BuildArtifact}/build/bin
+      - echo ${certificate} | base64 -d > /etc/cert.pem
+      - echo ${privatekey} | base64 -d > /etc/key.pem
