@@ -184,10 +184,13 @@ OUT
                      --output text --query ARN)
     echo Secret ARN: ${secret_arn}
     echo VARIABLES for AWS CODEBUILD:
+    echo name: [thing_name] value: [${secret_name}:thing_name]
+    echo name: [thing_arn] value: [${secret_name}:thing_arn]
     echo name: [certificate] value: [${secret_name}:certificate]
     echo name: [privatekey] value: [${secret_name}:privatekey]
     echo name: [iotcore_endpoint] value: [${secret_name}:iotcore_endpoint]
     echo name: [da_endpoint] value: [${secret_name}:da_endpoint]
+    echo name: [certificate_arn] value: [${secret_name}:certificate_arn]
 }
 
 function export_variants {
