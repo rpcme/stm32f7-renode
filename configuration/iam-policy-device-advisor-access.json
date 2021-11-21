@@ -2,16 +2,10 @@
     "Version": "2012-10-17",
     "Statement": [
         {
-            "Sid": "stanza0",
-            "Effect": "Allow",
-            "Action": "codecommit:GitPull",
-            "Resource": "arn:aws:codecommit:us-east-1:517295686160:myapp-core"
-        },
-        {
             "Sid": "stanza1",
             "Effect": "Allow",
             "Action": "iam:PassRole",
-            "Resource": "arn:aws:iam::517295686160:role/aws-iot-device-advisor-device-role",
+            "Resource": "DA_ROLE",
             "Condition": {
                 "StringEquals": {
                     "iam:PassedToService": "iotdeviceadvisor.amazonaws.com"
