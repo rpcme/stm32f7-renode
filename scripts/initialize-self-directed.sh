@@ -54,3 +54,6 @@ myapp-config/scripts/create-iot-credential.sh \
     -s da-credential-${mydevice} \
     > ${basedir}/credentials/log
 
+echo creating roles...
+${basedir}/myapp-config/scripts/create-iam-roles.sh
+echo Done.
