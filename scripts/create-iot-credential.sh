@@ -173,7 +173,7 @@ function store_secret {
   "certificate_arn" : "${certificate_arn}",
   "privatekey" : "${privatekey}",
   "iotcore_endpoint" : "${iotcore_endpoint}",
-  "da_endpoint" : "${da_endpoint}"
+  "da_endpoint" : "${da_endpoint}",
   "da_suite" : "${da_suite}"
 }
 OUT
