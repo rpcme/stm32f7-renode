@@ -45,7 +45,7 @@ while getopts "eFo:t:n:f:h:s:" opt; do
     esac
 done
 
-region=${region:-us-east-1}
+region=${region:-us-west-2}
 profile=${profile:-default}
 std_awscli_args="--output text --region ${region} --profile ${profile}"
 
