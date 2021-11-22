@@ -3,7 +3,7 @@
 region=${region:-us-east-1}
 profile=${profile:-default}
 std_awscli_args="--output text --region ${region} --profile ${profile}"
-ACCOUNT_ID=$(aws ${std_awscli_args} sts get-caller-identity --output text --query Account)
+ACCOUNT_ID=$(aws sts get-caller-identity --output text --query Account)
 
 function _detach_role_policy {
 aws iam detach-role-policy --role-name $1 --policy-arn $2
