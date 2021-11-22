@@ -8,9 +8,8 @@ DEPLOYTO_BUCKET=${ACCOUNT_ID}-myapp-deliver
 
 aws s3api create-bucket \
     --bucket ${DEPLOYTO_BUCKET} \
-    --query Location
-#\
-#    --region ${region}
+    --query Location \
+    --region ${region}
 
 aws s3api put-bucket-versioning \
     --bucket ${DEPLOYTO_BUCKET} \
