@@ -160,6 +160,7 @@ function store_secret {
     privatekey_file=$5
     iotcore_endpoint=$6
     da_endpoint=
+    da_suite=
     # make key and certificate storable
     certificate=$(base64 --wrap=0 ${certificate_file})
     privatekey=$(base64 --wrap=0 ${privatekey_file})
@@ -173,6 +174,7 @@ function store_secret {
   "privatekey" : "${privatekey}",
   "iotcore_endpoint" : "${iotcore_endpoint}",
   "da_endpoint" : "${da_endpoint}"
+  "da_suite" : "${da_suite}"
 }
 OUT
 
