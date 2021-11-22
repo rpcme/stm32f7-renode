@@ -89,13 +89,13 @@ cc_build_arn=$(aws iam create-role \
                    --assume-role-policy-document file:///tmp/codebuild-trust.json \
                    --query Role.Arn --output text)
 aws iam attach-role-policy \
-    --role-name myapp-codecommit-build-role \
+    --role-name myapp-codebuild-build-role \
     --policy-arn arn:aws:iam::${ACCOUNT_ID}:policy/myapp-codebuild-build
 aws iam attach-role-policy \
-    --role-name myapp-codecommit-build-role \
+    --role-name myapp-codebuild-build-role \
     --policy-arn arn:aws:iam::${ACCOUNT_ID}:policy/myapp-secrets-manager
 aws iam attach-role-policy \
-    --role-name myapp-codecommit-build-role \
+    --role-name myapp-codebuild-build-role \
     --policy-arn arn:aws:iam::${ACCOUNT_ID}:policy/myapp-codecommit-pull
 
 cc_test_arn=$(aws iam create-role \
@@ -103,15 +103,15 @@ cc_test_arn=$(aws iam create-role \
                   --assume-role-policy-document file:///tmp/codebuild-trust.json \
                   --query Role.Arn --output text)
 aws iam attach-role-policy \
-    --role-name myapp-codecommit-test-role \
+    --role-name myapp-codebuild-test-role \
     --policy-arn arn:aws:iam::${ACCOUNT_ID}:policy/myapp-codebuild-integration-test
 aws iam attach-role-policy \
-    --role-name myapp-codecommit-test-role \
+    --role-name myapp-codebuild-test-role \
     --policy-arn arn:aws:iam::${ACCOUNT_ID}:policy/myapp-secrets-manager
 aws iam attach-role-policy \
-    --role-name myapp-codecommit-test-role \
+    --role-name myapp-codebuild-test-role \
     --policy-arn arn:aws:iam::${ACCOUNT_ID}:policy/myapp-codecommit-pull
 aws iam attach-role-policy \
-    --role-name myapp-codecommit-test-role \
+    --role-name myapp-codebuild-test-role \
     --policy-arn arn:aws:iam::${ACCOUNT_ID}:policy/myapp-device-advisor-access
 
