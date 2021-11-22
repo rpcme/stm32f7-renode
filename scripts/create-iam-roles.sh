@@ -1,7 +1,7 @@
 #! /bin/sh
 
 basedir=$(dirname $0)/..
-region=${region:-us-east-1}
+region=${region:-us-west-2}
 profile=${profile:-default}
 std_awscli_args="--output text --region ${region} --profile ${profile}"
 ACCOUNT_ID=$(aws sts get-caller-identity --output text --query Account)

@@ -1,6 +1,6 @@
 #! /bin/sh
 
-region=${region:-us-east-1}
+region=${region:-us-west-2}
 profile=${profile:-default}
 std_awscli_args="--output text --region ${region} --profile ${profile}"
 ACCOUNT_ID=$(aws ${std_awscli_args} sts get-caller-identity --output text --query Account)
