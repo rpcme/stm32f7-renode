@@ -18,15 +18,15 @@ aws iam delete-role --role-name myapp-device-advisor-service-role
 _detach_role_policy myapp-codepipeline-service-role arn:aws:iam::${ACCOUNT_ID}:policy/myapp-codepipeline-service
 aws iam delete-role --role-name myapp-codepipeline-service-role
 
-_detach_role_policy myapp-codecommit-build-role arn:aws:iam::${ACCOUNT_ID}:policy/myapp-codebuild-build
-_detach_role_policy myapp-codecommit-build-role arn:aws:iam::${ACCOUNT_ID}:policy/myapp-secrets-manager
-_detach_role_policy myapp-codecommit-build-role arn:aws:iam::${ACCOUNT_ID}:policy/myapp-codecommit-pull
+_detach_role_policy myapp-codebuild-build-role arn:aws:iam::${ACCOUNT_ID}:policy/myapp-codebuild-build
+_detach_role_policy myapp-codebuild-build-role arn:aws:iam::${ACCOUNT_ID}:policy/myapp-secrets-manager
+_detach_role_policy myapp-codebuild-build-role arn:aws:iam::${ACCOUNT_ID}:policy/myapp-codecommit-pull
 aws iam delete-role --role-name myapp-codebuild-build-role
 
-_detach_role_policy myapp-codecommit-test-role arn:aws:iam::${ACCOUNT_ID}:policy/myapp-codebuild-integration-test
-_detach_role_policy myapp-codecommit-test-role arn:aws:iam::${ACCOUNT_ID}:policy/myapp-secrets-manager
-_detach_role_policy myapp-codecommit-test-role arn:aws:iam::${ACCOUNT_ID}:policy/myapp-codecommit-pull
-_detach_role_policy myapp-codecommit-test-role arn:aws:iam::${ACCOUNT_ID}:policy/myapp-device-advisor-access
+_detach_role_policy myapp-codebuild-test-role arn:aws:iam::${ACCOUNT_ID}:policy/myapp-codebuild-integration-test
+_detach_role_policy myapp-codebuild-test-role arn:aws:iam::${ACCOUNT_ID}:policy/myapp-secrets-manager
+_detach_role_policy myapp-codebuild-test-role arn:aws:iam::${ACCOUNT_ID}:policy/myapp-codecommit-pull
+_detach_role_policy myapp-codebuild-test-role arn:aws:iam::${ACCOUNT_ID}:policy/myapp-device-advisor-access
 aws iam delete-role --role-name myapp-codebuild-test-role
 
 aws iam delete-policy --policy-arn arn:aws:iam::${ACCOUNT_ID}:policy/myapp-codebuild-build
