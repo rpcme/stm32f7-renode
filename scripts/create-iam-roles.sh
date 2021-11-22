@@ -4,7 +4,7 @@ basedir=$(dirname $0)/..
 region=${region:-us-east-1}
 profile=${profile:-default}
 std_awscli_args="--output text --region ${region} --profile ${profile}"
-ACCOUNT_ID=$(aws ${std_awscli_args} sts get-caller-identity --output text --query Account)
+ACCOUNT_ID=$(aws sts get-caller-identity --output text --query Account)
 
 function create_role_trust () {
 #id=$(uuidgen)
