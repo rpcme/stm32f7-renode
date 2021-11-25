@@ -5,6 +5,10 @@ basedir=${HOME}/environment
 sudo yum remove -y openssl-devel
 sudo yum install -y jq openssl11 openssl11-devel
 
+pip3 install --user -U boto boto3 botocore awscli
+export PATH=${HOME}/.local/bin:$PATH
+echo "export PATH=${HOME}/.local/bin:$PATH" >> ~/.bashrc
+
 git config --global user.name "Cloudy Builder"
 git config --global user.email "developer@builder.me"
 git config --global credential.helper '!aws codecommit credential-helper $@'
