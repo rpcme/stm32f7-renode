@@ -7,6 +7,7 @@ function usage()
     echo ''
     echo 'Create a thing-certificate-policy tuple.'
     echo ''
+    echo '-d [suite_id]    (OPTIONAL) device advisor suite id'
     echo '-t [thing_name]  (REQUIRED) the iot thing name'
     echo '-n [policy name] (REQUIRED) the iot policy name'
     echo '-F               (OPTIONAL) Force.  Do not check it objects exist.'
@@ -25,9 +26,11 @@ function usage()
 
 FORCE=0
 volatile_dir=$(dirname $0)/../../volatile
-
-while getopts "eFo:t:n:f:h:s:" opt; do
+suite_id=
+while getopts "eFo:t:n:f:h:s:d:" opt; do
     case ${opt} in
+        d)  suite_id=$OPTARG
+            ;;
         t)  THING_NAME=$OPTARG
             ;;
         F)  FORCE=1
@@ -159,8 +162,10 @@ function store_secret {
     certificate_file=$4
     privatekey_file=$5
     iotcore_endpoint=$6
-    da_endpoint=
-    da_suite=
+    da_endpoint=$(aws iot describe-endpoint \
+                      --endpoint-type iot:deviceadvisor \
+                      --output text --query endpointAddress)
+    da_suite=${suite_id}
     # make key and certificate storable
     certificate=$(base64 --wrap=0 ${certificate_file})
     privatekey=$(base64 --wrap=0 ${privatekey_file})
