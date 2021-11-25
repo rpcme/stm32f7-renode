@@ -17,7 +17,12 @@ echo "export PATH=${HOME}/environment/cmake/bin:$PATH" >> ~/.bashrc
 rm cmake-3.21.4-linux-x86_64.sh
 
 cd ${basedir}
-repository_url=$(aws codecommit create-repository --repository-name myapp-core --output text --query repositoryMetadata.cloneUrlHttp)
+repository_url=
+if test -z "$1"; then
+    repository_url=$(aws codecommit create-repository --repository-name myapp-core --output text --query repositoryMetadata.cloneUrlHttp)
+else
+    repository_url=$1
+fi
 git clone ${repository_url}
 cd ${basedir}/myapp-core
 git remote add source https://github.com/aws/aws-iot-device-sdk-embedded-C
@@ -47,6 +52,7 @@ mkdir ${basedir}/credentials
 mydevice=$(uuidgen)
 myapp-config/scripts/create-iot-credential.sh \
     -F \
+    -d "$2" \
     -t ${mydevice} \
     -n awscsdk-mqtt-policy \
     -f ${basedir}/myapp-config/configuration/awscsdk-iotcore-policy.json \
@@ -54,6 +60,6 @@ myapp-config/scripts/create-iot-credential.sh \
     -s da-credential-${mydevice} \
     > ${basedir}/credentials/log
 
-echo creating deployment bucket...
-${basedir}/myapp-config/scripts/create-deploy-to-bucket.sh
+#echo creating deployment bucket...
+#${basedir}/myapp-config/scripts/create-deploy-to-bucket.sh
 echo Done.
