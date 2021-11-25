@@ -1,0 +1,1026 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: AWS CloudFormation template for the Device Advisor CICD session.
+
+Resources:
+  S3Bucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Delete
+    Properties:
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+        - ServerSideEncryptionByDefault:
+            SSEAlgorithm: AES256
+
+  S3BucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref S3Bucket
+      PolicyDocument:
+        Statement:
+          - Effect: Deny
+            Action: 's3:*'
+            Principal: '*'
+            Resource:
+              - !Join
+                - ''
+                - - 'arn:aws:s3:::'
+                  - !Ref S3Bucket
+              - !Join
+                - ''
+                - - 'arn:aws:s3:::'
+                  - !Ref S3Bucket
+                  - '/*'
+            Condition:
+              Bool:
+                aws:SecureTransport: false
+
+  ##############################################################################
+  ##
+  ## Core Network
+  ##
+  ##############################################################################
+
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 192.168.128.0/24
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: 'CFN Stack'
+          Value: !Ref AWS::StackName
+        - Key: Name
+          Value: 'Workshop VPC 192.168.128.0/24'
+
+  PubSubnetA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone:
+        !Join
+        - ''
+        - - !Ref AWS::Region
+          - 'a'
+      CidrBlock: 192.168.128.0/25
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: 'CFN Stack'
+          Value: !Ref AWS::StackName
+        - Key: Name
+          Value: 'Workshop subnet 192.168.128.0/25'
+    Metadata:
+      cfn_nag:
+        'rules_to_suppress':
+          - id: W33
+            reason: 'Public ip addresses must be assigned for instance to be accessible directly.'
+
+  PubSubnetB:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone:
+        !Join
+        - ''
+        - - !Ref AWS::Region
+          - 'a'
+      CidrBlock: 192.168.128.128/25
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: 'CFN Stack'
+          Value: !Ref AWS::StackName
+        - Key: Name
+          Value: 'Workshop subnet 192.168.128.128/25'
+    Metadata:
+      'cfn_nag':
+        'rules_to_suppress':
+          - id: W33
+            reason: 'Public ip addresses must be assigned for instance to be accessible directly.'
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: 'CFN Stack'
+          Value: !Ref AWS::StackName
+        - Key: Name
+          Value: 'IoT workshop'
+
+  GatewayToInternet:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref InternetGateway
+
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    DependsOn: GatewayToInternet
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: 'CFN Stack'
+          Value: !Ref AWS::StackName
+        - Key: Name
+          Value: 'IoT workshop'
+
+  PublicRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  PubSubnetARTAssoc:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PubSubnetA
+      RouteTableId: !Ref PublicRouteTable
+
+  PubSubnetBRTAssoc:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PubSubnetB
+      RouteTableId: !Ref PublicRouteTable
+
+  IoTPolicy:
+    Type: AWS::IoT::Policy
+    Properties:
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action: 'iot:*'
+            Resource: '*'
+    Metadata:
+      cfn_nag:
+        'rules_to_suppress':
+          - id: W38
+            reason: 'Open IoT policy for workshops.'
+          - id: W39
+            reason: 'Open IoT policy for workshops.'
+
+  IoTServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Path: /myapp/role/
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/service-role/AWSIoTThingsRegistration
+      - arn:aws:iam::aws:policy/service-role/AWSIoTLogging
+      - arn:aws:iam::aws:policy/service-role/AWSIoTRuleActions
+      - arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - iot.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Policies:
+        - PolicyName: !Sub 'IoTServiceInlinePolicy-${AWS::StackName}'
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+            - Effect: Allow
+              Action:
+              - iotsitewise:BatchPutAssetPropertyValue
+              - iotanalytics:BatchPutMessage
+              - iotevents:BatchPutMessage
+              Resource: '*'
+
+  ##############################################################################
+  ##
+  ## AWS Secret Manager
+  ##
+  ##############################################################################
+
+  MyAppSecrets:
+    Type: AWS::SecretsManager::Secret
+    DeletionPolicy: Delete
+    Properties:
+      Name: '/CodeBuild/MyAppSecrets'
+
+  ##############################################################################
+  ##
+  ## AWS CodeCommit
+  ##
+  ##############################################################################
+
+  MyAppRepo:
+    Type: AWS::CodeCommit::Repository
+    DeletionPolicy: Delete
+    Properties:
+      RepositoryName: myapp-core
+
+  DeviceAdvisorRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Path: /myapp/role/
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+        - Effect: Allow
+          Action:
+          - 'sts:AssumeRole'
+          Principal:
+            Service:
+            - iotdeviceadvisor.amazonaws.com
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/service-role/AWSIoTThingsRegistration
+      - arn:aws:iam::aws:policy/service-role/AWSIoTLogging
+      - arn:aws:iam::aws:policy/service-role/AWSIoTRuleActions
+      - arn:aws:iam::aws:policy/AWSIoTDataAccess
+
+
+  MyAppCodePipelineServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Path: /myapp/role/
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+        - Effect: Allow
+          Action:
+          - 'sts:AssumeRole'
+          Principal:
+            Service:
+            - codepipeline.amazonaws.com
+      ManagedPolicyArns:
+        - !Ref CodePipelineCorePolicy
+
+  MyAppCodeBuildBuildRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Path: /myapp/role/
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+        - Effect: Allow
+          Action:
+          - 'sts:AssumeRole'
+          Principal:
+            Service:
+            - codebuild.amazonaws.com
+      ManagedPolicyArns:
+        - !Ref CodeBuildBuildPolicy
+        - !Ref CodeCommitPullPolicy
+        - !Ref SecretsManagerAccessPolicy
+  
+  MyAppCodeBuildIntegrationTestRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Path: /myapp/role/
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+        - Effect: Allow
+          Action:
+          - 'sts:AssumeRole'
+          Principal:
+            Service:
+            - codebuild.amazonaws.com
+      ManagedPolicyArns:
+        - !Ref CodeBuildTestPolicy
+        - !Ref CodeCommitPullPolicy
+        - !Ref SecretsManagerAccessPolicy
+        - !Ref DeviceAdvisorAccessPolicy
+        
+  CodeBuildBuildPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Description: Policy for the MyApp build project in AWS CodeBuild.
+      Path: /myapp/policy/
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - 'logs:CreateLogGroup'
+              - 'logs:CreateLogStream'
+              - 'logs:PutLogEvents'
+            Resource:
+              - !Join
+                - ''
+                - - 'arn:aws:logs:'
+                  - !Ref 'AWS::Region'
+                  - ':'
+                  - !Ref 'AWS::AccountId'
+                  - ':log-group:/aws/codebuild/MyApp-Build'
+              - !Join
+                - ''
+                - - 'arn:aws:logs:'
+                  - !Ref 'AWS::Region'
+                  - ':'
+                  - !Ref 'AWS::AccountId'
+                  - ':log-group:/aws/codebuild/MyApp-Build:*'
+          - Effect: Allow
+            Action:
+              - 's3:PutObject'
+              - 's3:GetObject'
+              - 's3:GetObjectVersion'
+              - 's3:GetBucketAcl'
+              - 's3:GetBucketLocation'
+            Resource:
+              - !Join
+                - ''
+                - - 'arn:aws:s3:::codepipeline-'
+                  - !Ref 'AWS::Region'
+                  - '-*'
+          - Effect: Allow
+            Action:
+              - 'codebuild:CreateReportGroup'
+              - 'codebuild:CreateReport'
+              - 'codebuild:UpdateReport'
+              - 'codebuild:BatchPutTestCases'
+              - 'codebuild:BatchPutCodeCoverages'
+            Resource:
+              - !Join
+                - ''
+                - - 'arn:aws:codebuild:'
+                  - !Ref 'AWS::Region'
+                  - ':'
+                  - !Ref 'AWS::AccountId'
+                  - ':report-group/MyApp-Build-*'
+
+  CodeBuildTestPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Description: Policy for the MyApp test project in AWS CodeBuild.
+      Path: /myapp/policy/
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+        - Effect: Allow
+          Action:
+          - logs:CreateLogGroup
+          - logs:CreateLogStream
+          - logs:PutLogEvents
+          Resource:
+          - !Join
+            - ''
+            - - 'arn:aws:logs:'
+              - !Ref 'AWS::Region'
+              - ':'
+              - !Ref 'AWS::AccountId'
+              - ':log-group:/aws/codebuild/MyApp-Integration-Test'
+          - !Join
+            - ''
+            - - 'arn:aws:logs:'
+              - !Ref 'AWS::Region'
+              - ':'
+              - !Ref 'AWS::AccountId'
+              - ':log-group:/aws/codebuild/MyApp-Integration-Test:*'
+        - Effect: Allow
+          Action:
+          - s3:PutObject
+          - s3:GetObject
+          - s3:GetObjectVersion
+          - s3:GetBucketAcl
+          - s3:GetBucketLocation
+          Resource:
+          - !Join
+            - ''
+            - - 'arn:aws:s3:::codepipeline-'
+              - !Ref 'AWS::Region'
+              - '-*'
+        - Effect: Allow
+          Action:
+          - codebuild:CreateReportGroup
+          - codebuild:CreateReport
+          - codebuild:UpdateReport
+          - codebuild:BatchPutTestCases
+          - codebuild:BatchPutCodeCoverages
+          Resource:
+          - !Join
+            - ''
+            - - 'arn:aws:codebuild:'
+              - !Ref 'AWS::Region'
+              - ':'
+              - !Ref 'AWS::AccountId'
+              - ':report-group/MyApp-Integration-Test-*'
+
+  CodeCommitPullPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Description: >-
+          Policy to have capability to pull code from the CodeCommit
+          repo.
+      Path: /myapp/policy/
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - 'codecommit:GitPull'
+            Resource: !GetAtt MyAppRepo.Arn
+
+  CodePipelineCorePolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Description: >-
+        Policy for high level CodePipeline execution.
+      Path: /myapp/policy/
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Action:
+            - iam:PassRole
+          Resource: '*'
+          Condition:
+            StringEqualsIfExists:
+              iam:PassedToService:
+              - cloudformation.amazonaws.com
+              - elasticbeanstalk.amazonaws.com
+              - ec2.amazonaws.com
+              - ecs-tasks.amazonaws.com
+        - Effect: Allow
+          Action:
+          - codecommit:CancelUploadArchive
+          - codecommit:GetBranch
+          - codecommit:GetCommit
+          - codecommit:GetRepository
+          - codecommit:GetUploadArchiveStatus
+          - codecommit:UploadArchive
+          Resource: '*'
+        - Effect: Allow
+          Action:
+          - codedeploy:CreateDeployment
+          - codedeploy:GetApplication
+          - codedeploy:GetApplicationRevision
+          - codedeploy:GetDeployment
+          - codedeploy:GetDeploymentConfig
+          - codedeploy:RegisterApplicationRevision
+          Resource: '*'
+        - Effect: Allow
+          Action:
+            - codestar-connections:UseConnection
+          Resource: '*'
+        - Effect: Allow
+          Action:
+          - elasticbeanstalk:*
+          - ec2:*
+          - elasticloadbalancing:*
+          - autoscaling:*
+          - cloudwatch:*
+          - s3:*
+          - sns:*
+          - cloudformation:*
+          - rds:*
+          - sqs:*
+          - ecs:*
+          Resource: '*'
+        - Effect: Allow
+          Action:
+          - 'lambda:InvokeFunction'
+          - 'lambda:ListFunctions'
+          Resource: '*'
+        - Effect: Allow
+          Action:
+          - 'opsworks:CreateDeployment'
+          - 'opsworks:DescribeApps'
+          - 'opsworks:DescribeCommands'
+          - 'opsworks:DescribeDeployments'
+          - 'opsworks:DescribeInstances'
+          - 'opsworks:DescribeStacks'
+          - 'opsworks:UpdateApp'
+          - 'opsworks:UpdateStack'
+          Resource: '*'
+        - Effect: Allow
+          Action:
+          - 'cloudformation:CreateStack'
+          - 'cloudformation:DeleteStack'
+          - 'cloudformation:DescribeStacks'
+          - 'cloudformation:UpdateStack'
+          - 'cloudformation:CreateChangeSet'
+          - 'cloudformation:DeleteChangeSet'
+          - 'cloudformation:DescribeChangeSet'
+          - 'cloudformation:ExecuteChangeSet'
+          - 'cloudformation:SetStackPolicy'
+          - 'cloudformation:ValidateTemplate'
+          Resource: '*'
+        - Effect: Allow
+          Action:
+          - 'codebuild:BatchGetBuilds'
+          - 'codebuild:StartBuild'
+          - 'codebuild:BatchGetBuildBatches'
+          - 'codebuild:StartBuildBatch'
+          Resource: '*'
+        - Effect: Allow
+          Action:
+          - 'devicefarm:ListProjects'
+          - 'devicefarm:ListDevicePools'
+          - 'devicefarm:GetRun'
+          - 'devicefarm:GetUpload'
+          - 'devicefarm:CreateUpload'
+          - 'devicefarm:ScheduleRun'
+          Resource: '*'
+        - Effect: Allow
+          Action:
+          - 'servicecatalog:ListProvisioningArtifacts'
+          - 'servicecatalog:CreateProvisioningArtifact'
+          - 'servicecatalog:DescribeProvisioningArtifact'
+          - 'servicecatalog:DeleteProvisioningArtifact'
+          - 'servicecatalog:UpdateProduct'
+          Resource: '*'
+        - Effect: Allow
+          Action:
+          - 'cloudformation:ValidateTemplate'
+          Resource: '*'
+        - Effect: Allow
+          Action:
+          - 'ecr:DescribeImages'
+          Resource: '*'
+        - Effect: Allow
+          Action:
+          - 'states:DescribeExecution'
+          - 'states:DescribeStateMachine'
+          - 'states:StartExecution'
+          Resource: '*'
+        - Effect: Allow
+          Action:
+          - 'appconfig:StartDeployment'
+          - 'appconfig:StopDeployment'
+          - 'appconfig:GetDeployment'
+          Resource: '*'
+
+  DeviceAdvisorAccessPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Description: Policy for accessing Device Advisor automatically from CodeBuild.
+      Path: /myapp/policy/
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action:
+              - 'iam:PassRole'
+            Resource: !GetAtt DeviceAdvisorRole.Arn
+            Condition:
+              StringEquals:
+                'iam:PassedToService':
+                  - 'iotdeviceadvisor.amazonaws.com'
+          - Effect: Allow
+            Action:
+              - 'iam:ListRoles'
+              - 'iot:Connect'
+              - 'logs:DescribeLogStreams'
+              - 'iot:DescribeThing'
+              - 'iot:DescribeCertificate'
+              - 'logs:CreateLogGroup'
+              - 'logs:DescribeLogGroups'
+              - 'logs:PutLogEvents'
+              - 'iot:DescribeEndpoint'
+              - 'execute-api:Invoke*'
+              - 'logs:CreateLogStream'
+              - 'iot:ListPrincipalPolicies'
+              - 'iot:ListThingPrincipals'
+              - 'iot:ListThings'
+              - 'iot:Publish'
+              - 'iot:CreateJob'
+              - 'iot:DescribeJob'
+              - 'iot:ListCertificates'
+              - 'iot:ListAttachedPolicies'
+              - 'iot:UpdateThingShadow'
+              - 'iot:GetPolicy'
+            Resource: '*'
+          - Effect: Allow
+            Action:
+              - 'iotdeviceadvisor:*'
+            Resource: '*'
+
+  SecretsManagerAccessPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Description: >-
+          Policy for accessing Device Advisor automatically from
+          CodeBuild.
+      Path: /myapp/policy/
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - 'secretsmanager:GetSecretValue'
+            Resource: !Ref MyAppSecrets
+
+  C9InstancePolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Description: 'MyApp developer policy'
+      Path: /myapp/policy/
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - 'cloud9:CreateEnvironmentMembership'
+              - 'iot:*'
+              - 'iotsitewise:*'
+              - 'greengrass:*'
+              - 's3:*'
+              - 'signer:*'
+              - 'ec2:DescribeInstances'
+              - 'ec2:DescribeVolumesModifications'
+              - 'ec2:ModifyVolume'
+              - 'iam:CreateAccessKey'
+              - 'iam:CreateLoginProfile'
+              - 'iam:CreateServiceLinkedRole'
+              - 'iam:DeleteServiceLinkedRole'
+              - 'iam:AttachRolePolicy'
+              - 'iam:DetachRolePolicy'
+              - 'iam:GetRole'
+              - 'iam:GetUser'
+              - 'iam:CreateRole'
+              - 'iam:DeleteRole'
+              - 'iam:ListUsers'
+            Resource: '*'
+          - Effect: Allow
+            Action:
+              - 'iam:PassRole'
+            Resource: !Sub 'arn:aws:iam::${AWS::AccountId}:role/*'
+          - Effect: Allow
+            Action:
+              - 'secretsmanager:CreateSecret'
+            Resource: !Sub 'arn:aws:secretsmanager:*:${AWS::AccountId}:secret:workshop/SiteWise*'
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: F5
+            reason: 'Permissive policy to bootstrap C9 instance.'
+          - id: W13
+            reason: 'Resource names not available at stack launch.'
+
+  ##############################################################################
+  ##
+  ## Cloud9 Instance
+  ##
+  ##############################################################################
+
+  C9SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: >-
+        Access to MQTT and ports
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: myapp
+      SecurityGroupEgress:
+      - Description: Allow all outgoing traffic
+        IpProtocol: tcp
+        FromPort: 0
+        ToPort: 65535
+        CidrIp: 0.0.0.0/0
+      SecurityGroupIngress:
+      - Description: Sample ingress security rule to be modified
+        IpProtocol: tcp
+        FromPort: 443
+        ToPort: 443
+        CidrIp: 127.0.0.1/32
+    Metadata:
+      cfn_nag:
+        'rules_to_suppress':
+          - id: W5
+            reason: At the time of launch egress cidr/port not known.
+          - id: W29
+            reason: At the time of launch egress cidr/port not known.
+
+  C9InstanceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Path: /myapp/role/
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+        - Effect: Allow
+          Action:
+          - sts:AssumeRole
+          Principal:
+            Service:
+            - ec2.amazonaws.com
+            - ssm.amazonaws.com
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+        - !Ref C9InstancePolicy
+
+  C9InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Path: /myapp/instance-profile/
+      Roles:
+      - !Ref C9InstanceRole
+
+  C9Instance:
+    Type: AWS::Cloud9::EnvironmentEC2
+    Properties:
+      Name: MyAppEnvironment
+      Description: >-
+        The developer desktop for the MyApp development team.
+      AutomaticStopTimeMinutes: 720
+      InstanceType: t3.medium
+      ImageId: amazonlinux-2-x86_64
+      SubnetId: !Ref PubSubnetA
+      Tags: 
+        - Key: SSMBootstrap
+          Value: Active
+
+  C9BootstrapLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Path: /myapp/role/
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+        - Effect: Allow
+          Action:
+          - sts:AssumeRole
+          Principal:
+            Service:
+            - lambda.amazonaws.com
+      Policies:
+        - PolicyName: !Sub 'LambdaBootstrapInlinePolicy-${AWS::StackName}'
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+            - Effect: Allow
+              Action:
+              - logs:CreateLogGroup
+              - logs:CreateLogStream
+              - logs:PutLogEvents
+              Resource: arn:aws:logs:*:*:*
+            - Effect: Allow
+              Action:
+              - cloudformation:DescribeStacks
+              - cloudformation:DescribeStackEvents
+              - cloudformation:DescribeStackResource
+              - cloudformation:DescribeStackResources
+              - ec2:DescribeInstances
+              - ec2:AssociateIamInstanceProfile
+              - ec2:DescribeIamInstanceProfileAssociations
+              - ec2:DisassociateIamInstanceProfile
+              - ec2:ModifyInstanceAttribute
+              - ec2:ReplaceIamInstanceProfileAssociation
+              - iam:ListInstanceProfiles
+              - ssm:DescribeInstanceInformation
+              - ssm:SendCommand
+              Resource: '*'
+            - Effect: Allow
+              Action:
+              - iam:PassRole
+              Resource: !Sub 'arn:aws:iam::${AWS::AccountId}:role/*'
+            - Effect: Allow
+              Action:
+                - 's3:*'
+              Resource:
+                - !GetAtt S3Bucket.Arn
+                - !Join
+                  - ''
+                  - - !GetAtt S3Bucket.Arn
+                    - '/*'
+
+  BootstrapC9InstanceCustom:
+    Type: Custom::BootstrapC9InstanceCustom
+    DependsOn:
+      - C9BootstrapLambdaRole
+      - BootstrapC9InstanceLambdaFunction
+      - C9Instance
+      - C9InstanceProfile
+    Properties:
+      ServiceToken: !GetAtt BootstrapC9InstanceLambdaFunction.Arn
+      REGION: !Ref AWS::Region
+      StackName: !Ref AWS::StackName
+      EnvironmentId: !Ref C9Instance
+      LabIdeInstanceProfileName: !Ref C9InstanceProfile
+      LabIdeInstanceProfileArn: !GetAtt C9InstanceProfile.Arn
+
+  BootstrapC9InstanceLambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Handler: index.lambda_handler
+      Role: !GetAtt C9BootstrapLambdaRole.Arn
+      Runtime: python3.7
+      MemorySize: 256
+      Timeout: '600'
+      Code:
+        ZipFile: |
+          from __future__ import print_function
+          import boto3
+          import logging
+          import json
+          import os
+          import sys
+          import time
+          import traceback
+          import cfnresponse
+
+          logger = logging.getLogger()
+          for h in logger.handlers:
+            logger.removeHandler(h)
+          h = logging.StreamHandler(sys.stdout)
+          FORMAT = '%(asctime)s [%(levelname)s]: %(threadName)s-%(filename)s:\
+          %(lineno)s-%(funcName)s: %(message)s'
+          h.setFormatter(logging.Formatter(FORMAT))
+          logger.addHandler(h)
+          logger.setLevel(logging.INFO)
+          
+          def lambda_handler(event, context):
+              logger.info('event: {}'.format(event))
+              logger.info('context: {}'.format(context))
+              responseData = {}
+              # Open AWS clients
+              ec2 = boto3.client('ec2')
+          
+              if event['RequestType'] == 'Create':
+                  try:
+                      # Get the InstanceId of the Cloud9 IDE
+                      instance = ec2.describe_instances(Filters=[{'Name': 'tag:Name','Values': ['aws-cloud9-MyAppEnvironment-'+event['ResourceProperties']['EnvironmentId']]}])['Reservations'][0]['Instances'][0]
+                      logger.info('instance: {}'.format(instance))
+          
+                      # Create the IamInstanceProfile request object
+                      iam_instance_profile = {
+                          'Arn': event['ResourceProperties']['LabIdeInstanceProfileArn'],
+                          'Name': event['ResourceProperties']['LabIdeInstanceProfileName']
+                      }
+                      logger.info('iam_instance_profile: {}'.format(iam_instance_profile))
+          
+                      # Wait for Instance to become ready before adding Role
+                      instance_state = instance['State']['Name']
+                      logger.info('instance_state: {}'.format(instance_state))
+                      while instance_state != 'running':
+                          time.sleep(5)
+                          instance_state = ec2.describe_instances(InstanceIds=[instance['InstanceId']])
+                          # logger.info('instance_state: {}'.format(instance_state))
+          
+                      # attach instance profile
+                      response = ec2.associate_iam_instance_profile(IamInstanceProfile=iam_instance_profile, InstanceId=instance['InstanceId'])
+                      logger.info('response - associate_iam_instance_profile: {}'.format(response))
+                      r_ec2 = boto3.resource('ec2')
+  
+                      responseData = {'Success': 'Started bootstrapping for instance: '+instance['InstanceId']}
+                      cfnresponse.send(event, context, cfnresponse.SUCCESS, responseData, 'CustomResourcePhysicalID')
+                      
+                  except Exception as e:
+                      # logger.error(e, exc_info=True)
+                      responseData = {'Error': traceback.format_exc()}
+                      cfnresponse.send(event, context, cfnresponse.FAILED, responseData, 'CustomResourcePhysicalID')
+              if event['RequestType'] == 'Update':
+                  try:
+                      instance = ec2.describe_instances(Filters=[{'Name': 'tag:Name','Values': ['aws-cloud9-MyAppEnvironment-'+event['ResourceProperties']['EnvironmentId']]}])['Reservations'][0]['Instances'][0]
+                      responseData = {'Success': 'Started update for instance: '+instance['InstanceId']}
+                      cfnresponse.send(event, context, cfnresponse.SUCCESS, responseData, 'CustomResourcePhysicalID')
+                  except Exception as e:
+                      responseData = {'Error': traceback.format_exc()}
+                      cfnresponse.send(event, context, cfnresponse.FAILED, responseData, 'CustomResourcePhysicalID')
+              if event['RequestType'] == 'Delete':
+                  try:
+                      instance = ec2.describe_instances(Filters=[{'Name': 'tag:Name','Values': ['aws-cloud9-MyAppEnvironment-'+event['ResourceProperties']['EnvironmentId']]}])['Reservations'][0]['Instances'][0]
+                      responseData = {'Success': 'Started deletion for instance: '+instance['InstanceId']}
+                      cfnresponse.send(event, context, cfnresponse.SUCCESS, responseData, 'CustomResourcePhysicalID')
+                  except Exception as e:
+                      responseData = {'Error': traceback.format_exc()}
+                      cfnresponse.send(event, context, cfnresponse.FAILED, responseData, 'CustomResourcePhysicalID')
+  C9OutputBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Delete
+
+  C9SSMDocument: 
+    Type: AWS::SSM::Document
+    Properties: 
+      Tags:
+        - Key: Environment
+          Value: MyApp
+      Content: Yaml
+      DocumentType: Command
+      Content: 
+        schemaVersion: '2.2'
+        description: Bootstrap Cloud9 Instance
+        mainSteps:
+        - action: aws:runShellScript
+          name: C9bootstrap
+          inputs:
+            runCommand:
+            - "#!/bin/bash"
+            - date
+            - echo LANG=en_US.utf-8 >> /etc/environment
+            - echo LC_ALL=en_US.UTF-8 >> /etc/environment
+            - . /home/ec2-user/.bashrc
+            - yum -y install sqlite telnet jq strace tree gcc glibc-static python3 python3-pip gettext bash-completion
+            - yum -y remove openssl-devel
+            - yum -y install jq openssl11 openssl11-devel
+            - echo '=== CONFIGURE default python version ==='
+            - PATH=$PATH:/usr/bin
+            - alternatives --set python /usr/bin/python3.6
+            - echo '=== CONFIGURE awscli and setting ENVIRONMENT VARS ==='
+            - yum -y remove aws-cli
+            - echo '=== INSTALL and CONFIGURE default software components ==='
+            - pip3 install boto boto3 botocore awscli
+            - sudo -H -u ec2-user bash -c "pip3 install --user -U boto boto3 botocore awscli aws-sam-cli"
+            - echo "complete -C '/usr/local/bin/aws_completer' aws" >> /home/ec2-user/.bashrc
+            - mkdir /home/ec2-user/.aws
+            - echo '[default]' > /home/ec2-user/.aws/config
+            - echo 'output = json' >> /home/ec2-user/.aws/config
+            - chmod 600 /home/ec2-user/.aws/config && chmod 600 /home/ec2-user/.aws/credentials
+            - echo 'PATH=$PATH:/usr/local/bin' >> /home/ec2-user/.bashrc
+            - echo 'PATH=$PATH:/usr/local/bin' >> ${HOME}/.bashrc
+            - echo 'export PATH' >> /home/ec2-user/.bashrc
+            - echo 'export PATH' >> ${HOME}/.bashrc
+            - echo '=== Resizing the Instance volume'
+            - export PATH=$PATH:/usr/local/bin
+            - !Sub SIZE=15
+            - !Sub REGION=${AWS::Region}
+            - |
+              INSTANCEID=$(curl http://169.254.169.254/latest/meta-data/instance-id)
+              VOLUMEID=$(aws ec2 describe-instances \
+                --instance-id $INSTANCEID \
+                --query "Reservations[0].Instances[0].BlockDeviceMappings[0].Ebs.VolumeId" \
+                --output text --region $REGION)
+              aws ec2 modify-volume --volume-id $VOLUMEID --size $SIZE --region $REGION
+              while [ \
+                "$(aws ec2 describe-volumes-modifications \
+                  --volume-id $VOLUMEID \
+                  --filters Name=modification-state,Values="optimizing","completed" \
+                  --query "length(VolumesModifications)"\
+                  --output text --region $REGION)" != "1" ]; do
+              sleep 1
+              done
+              if [ $(readlink -f /dev/xvda) = "/dev/xvda" ]
+              then
+                sudo growpart /dev/xvda 1
+                STR=$(cat /etc/os-release)
+                SUB="VERSION_ID=\"2\""
+                if [[ "$STR" == *"$SUB"* ]]
+                then
+                  sudo xfs_growfs -d /
+                else
+                  sudo resize2fs /dev/xvda1
+                fi
+              else
+                sudo growpart /dev/nvme0n1 1
+                STR=$(cat /etc/os-release)
+                SUB="VERSION_ID=\"2\""
+                if [[ "$STR" == *"$SUB"* ]]
+                then
+                  sudo xfs_growfs -d /
+                else
+                  sudo resize2fs /dev/nvme0n1p1
+                fi
+              fi
+            - echo '=== CONFIGURE git ==='
+            - sudo -H -u ec2-user bash -c "git config --global user.name 'Cloudy Builder'"
+            - sudo -H -u ec2-user bash -c "git config --global user.email 'developer@builder.me'"
+            - sudo -H -u ec2-user bash -c 'git config --global credential.helper "!aws codecommit credential-helper $@"'
+            - sudo -H -u ec2-user bash -c 'git config --global credential.UseHttpPath true'
+            - echo '=== CONFIGURE development environment ==='
+            - mkdir -p /opt/cmake
+            - wget -q https://github.com/Kitware/CMake/releases/download/v3.21.4/cmake-3.21.4-linux-x86_64.sh
+            - sh ./cmake-3.21.4-linux-x86_64.sh --skip-license --prefix=/opt/cmake
+            - echo "export PATH=/opt/cmake/bin:$PATH" >> /home/ec2-user/.bashrc
+            - rm cmake-3.21.4-linux-x86_64.sh
+            - echo '=== CLEANING /home/ec2-user ==='
+            - for f in cloud9; do rm -rf /home/ec2-user/$f; done
+            - chown -R ec2-user:ec2-user /home/ec2-user/
+            - touch /home/ec2-user/BOOTSTRAP_COMPLETE
+            - echo '=== PREPARE REBOOT in 1 minute with at ==='
+            - FILE=$(mktemp) && echo $FILE && echo '#!/bin/bash' > $FILE && echo 'reboot -f' >> $FILE && at now + 1 minute -f $FILE
+            - echo "Bootstrap completed with return code $?"
+
+  C9BootstrapAssociation: 
+    Type: AWS::SSM::Association
+    DependsOn:
+      - C9OutputBucket
+      - BootstrapC9InstanceLambdaFunction
+    Properties: 
+      Name: !Ref C9SSMDocument
+      OutputLocation: 
+        S3Location:
+          OutputS3BucketName: !Ref C9OutputBucket
+          OutputS3KeyPrefix: bootstrapoutput
+      Targets:
+        - Key: tag:SSMBootstrap
+          Values:
+          - Active
+
+Outputs:
+  AWSCloud9URL:
+    Description: >-
+      URL to access your AWS Cloud9 IDE
+    Value:
+      !Join
+        - ''
+        - - 'https://'
+          - !Ref AWS::Region
+          - '.console.aws.amazon.com/cloud9/home/environments/'
+          - !Ref C9Instance
+          - '?permissions=owner'
+  AWSCloud9Id:
+    Description: >-
+      Environment id of your AWS Cloud9 IDE
+    Value: !Ref C9Instance
+  S3Bucket:
+    Description: >-
+      Name of the S3 Bucket for the IoT workshop
+    Value: !Ref S3Bucket
+  IoTPolicy:
+    Description: >-
+      Name of the IoT policy for JITP
+    Value: !Ref IoTPolicy
