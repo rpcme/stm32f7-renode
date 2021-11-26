@@ -64,6 +64,7 @@ myapp-config/scripts/create-iot-credential.sh \
     -f ${basedir}/myapp-config/configuration/awscsdk-iotcore-policy.json \
     -o ${basedir}/credentials \
     -s "$4" \
+    -S \
     > ${basedir}/credentials/log
 
 #echo creating deployment bucket...

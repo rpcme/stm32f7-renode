@@ -173,7 +173,7 @@ function store_secret {
     # make key and certificate storable
     certificate=$(base64 --wrap=0 ${certificate_file})
     privatekey=$(base64 --wrap=0 ${privatekey_file})
-    secret_name="/CodeBuild/da_cred_${thing_name}"
+    secret_name=$SECRET_NAME
     
     cat <<OUT > /tmp/secret_string.json
 { "thing_name" : "${thing_name}",
