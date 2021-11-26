@@ -16,6 +16,7 @@ function usage()
     echo '-s [csr_file]    (OPTIONAL) when using private pki, use this csr'
     echo '-o [dir]         (OPTIONAL) default: $volatile_dir/$thing_name'
     echo '-s [name]        (OPTIONAL) Add an AWS Secrets Manager item with this info'
+    echo '-S               (OPTIONAL) Update secret instead of create'
     echo '-e               (OPTIONAL) export worthwhile variants to file'
     echo ''
     echo '$volatile_dir by default is $(dirname $0)/../../volatile'
@@ -27,6 +28,7 @@ function usage()
 FORCE=0
 volatile_dir=$(dirname $0)/../../volatile
 suite_id=
+SECRET_UPDATE=0
 while getopts "eFo:t:n:f:h:s:d:" opt; do
     case ${opt} in
         d)  suite_id=$OPTARG
@@ -40,6 +42,8 @@ while getopts "eFo:t:n:f:h:s:d:" opt; do
         n)  POLICY_NAME=$OPTARG
             ;;
         s)  SECRET_NAME=$OPTARG
+            ;;
+        S)  SECRET_UPDATE=1
             ;;
         o)  volatile_dir=$OPTARG
             ;;
@@ -184,11 +188,18 @@ function store_secret {
 OUT
 
     #    secret_string=$(cat /tmp/secret_string.json)
-    secret_arn=$(aws secretsmanager create-secret \
-                     --secret-string file:///tmp/secret_string.json \
-                     --name ${secret_name} \
-                     --description "Credentials for Device Advisor" \
-                     --output text --query ARN)
+    if test $SECRET_UPDATE == 0; then
+        secret_arn=$(aws secretsmanager create-secret \
+                         --secret-string file:///tmp/secret_string.json \
+                         --name ${secret_name} \
+                         --description "Credentials for Device Advisor" \
+                         --output text --query ARN)
+    else
+        secret_arn=$(aws secretsmanager update-secret \
+                         --secret-string file:///tmp/secret_string.json \
+                         --secret-id ${secret_name} \
+                         --output text --query ARN)
+    fi
     echo Secret ARN: ${secret_arn}
     echo VARIABLES for AWS CODEBUILD:
     echo name: [thing_name] value: [${secret_name}:thing_name]

@@ -59,11 +59,11 @@ mydevice=$(uuidgen)
 myapp-config/scripts/create-iot-credential.sh \
     -F \
     -d "$2" \
-    -t ${mydevice} \
+    -t "$3" \
     -n awscsdk-mqtt-policy \
     -f ${basedir}/myapp-config/configuration/awscsdk-iotcore-policy.json \
     -o ${basedir}/credentials \
-    -s da-credential-${mydevice} \
+    -s "$4" \
     > ${basedir}/credentials/log
 
 #echo creating deployment bucket...
