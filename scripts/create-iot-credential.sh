@@ -29,7 +29,7 @@ FORCE=0
 volatile_dir=$(dirname $0)/../../volatile
 suite_id=
 SECRET_UPDATE=0
-while getopts "eFo:t:n:f:h:s:d:" opt; do
+while getopts "eFSo:t:n:f:h:s:d:" opt; do
     case ${opt} in
         d)  suite_id=$OPTARG
             ;;
