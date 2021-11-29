@@ -261,14 +261,14 @@ Resources:
   DeviceAdvisorSubscribePolicy:
     Type: AWS::IAM::ManagedPolicy
     Properties:
-      Description: Device Advisor publish policy
+      Description: Device Advisor subscribe policy
       Path: /myapp/
       PolicyDocument:
         Version: "2012-10-17"
         Statement:
           - Effect: Allow
             Action:
-              - iot:Publish
+              - iot:Subscribe
               - iot:Receive
             Resource:
               - !Join
