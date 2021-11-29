@@ -497,8 +497,7 @@ Resources:
         Type: CODEPIPELINE
       BadgeEnabled: false
       Description: >-
-          The build process for creating an image and propagating to
-          ECR for automated build processes.
+          The automation process for the integration test.
       Environment:
         Type: LINUX_CONTAINER
         ComputeType: BUILD_GENERAL1_SMALL
@@ -516,6 +515,9 @@ Resources:
             Type: SECRETS_MANAGER
           - Name: da_endpoint
             Value: /CodeBuild/MyAppSecrets:da_endpoint
+            Type: SECRETS_MANAGER
+          - Name: da_suite
+            Value: /CodeBuild/MyAppSecrets:da_suite
             Type: SECRETS_MANAGER
           - Name: thing_arn
             Value: /CodeBuild/MyAppSecrets:thing_arn
