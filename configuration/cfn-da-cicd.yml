@@ -320,6 +320,7 @@ Resources:
       ManagedPolicyArns:
       - !Ref DeviceAdvisorConnectPolicy
       - !Ref DeviceAdvisorPublishPolicy
+      - DeviceAdvisorSubscribePolicy
 
   DeviceAdvisorAccessPolicy:
     Type: AWS::IAM::ManagedPolicy
