@@ -2,38 +2,6 @@ AWSTemplateFormatVersion: 2010-09-09
 Description: AWS CloudFormation template for the Device Advisor CICD session.
 
 Resources:
-  S3Bucket:
-    Type: AWS::S3::Bucket
-    DeletionPolicy: Delete
-    Properties:
-      BucketEncryption:
-        ServerSideEncryptionConfiguration:
-        - ServerSideEncryptionByDefault:
-            SSEAlgorithm: AES256
-
-  S3BucketPolicy:
-    Type: AWS::S3::BucketPolicy
-    Properties:
-      Bucket: !Ref S3Bucket
-      PolicyDocument:
-        Statement:
-          - Effect: Deny
-            Action: 's3:*'
-            Principal: '*'
-            Resource:
-              - !Join
-                - ''
-                - - 'arn:aws:s3:::'
-                  - !Ref S3Bucket
-              - !Join
-                - ''
-                - - 'arn:aws:s3:::'
-                  - !Ref S3Bucket
-                  - '/*'
-            Condition:
-              Bool:
-                aws:SecureTransport: false
-
   ##############################################################################
   ##
   ## Core Network
@@ -199,11 +167,137 @@ Resources:
     Properties:
       Name: '/CodeBuild/MyAppSecrets'
 
+  SecretsManagerAccessPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Description: >-
+          Policy for accessing the AWS Secret Manager secret for this
+          session.
+      Path: /myapp/policy/
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - secretsmanager:GetSecretValue
+            Resource: !Ref MyAppSecrets
+
+  ##############################################################################
+  ##
+  ## AWS IoT Core Device Advisor
+  ##
+  ##############################################################################
+
+  MyAppIntegrationTestSuite:
+    Type: AWS::IoTCoreDeviceAdvisor::SuiteDefinition
+    Properties:
+      SuiteDefinitionConfiguration:
+        IntendedForQualification: false
+        SuiteDefinitionName: MyApp Test Suite
+        DevicePermissionRoleArn: !GetAtt DeviceAdvisorRole.Arn
+        RootGroup: >-
+          {
+            "configuration": {},
+            "tests": [
+              {
+                "name": "TestGroup",
+                "configuration": {
+                  "EXECUTION_TIMEOUT": "30"
+                },
+                "tests": []
+              }]
+          }
+
+  DeviceAdvisorConnectPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Description: Device Advisor connect policy
+      Path: /myapp/
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - iot:Connect
+            Resource:
+              - !Join
+                - ''
+                - - 'arn:aws:iot:'
+                  - !Ref 'AWS::Region'
+                  - ':'
+                  - !Ref 'AWS::AccountId'
+                  - ':client/'
+                  - !Ref MyAppThing
+
+  DeviceAdvisorPublishPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Description: Device Advisor publish policy
+      Path: /myapp/
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - iot:Publish
+            Resource:
+              - !Join
+                - ''
+                - - 'arn:aws:iot:'
+                  - !Ref 'AWS::Region'
+                  - ':'
+                  - !Ref 'AWS::AccountId'
+                  - ':topic/all/device/telemetry'
+              - !Join
+                - ''
+                - - 'arn:aws:iot:'
+                  - !Ref 'AWS::Region'
+                  - ':'
+                  - !Ref 'AWS::AccountId'
+                  - ':topic/'
+                  - !Ref MyAppThing
+                  - '/example/topic'
+
+  DeviceAdvisorRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Path: /service-role/
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+        - Effect: Allow
+          Action:
+          - sts:AssumeRole
+          Principal:
+            Service:
+            - iotdeviceadvisor.amazonaws.com
+      ManagedPolicyArns:
+      - !Ref DeviceAdvisorConnectPolicy
+      - !Ref DeviceAdvisorPublishPolicy
+
+  DeviceAdvisorAccessPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Description: Policy for accessing Device Advisor automatically from CodeBuild.
+      Path: /myapp/
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Action:
+          - iam:PassRole
+          Resource: !GetAtt DeviceAdvisorRole.Arn
+        - Effect: Allow
+          Action:
+          - iotdeviceadvisor:*
+          Resource: '*'
+
   ##############################################################################
   ##
   ## AWS CodeCommit
   ##
   ##############################################################################
+
 
   MyAppRepo:
     Type: AWS::CodeCommit::Repository
@@ -211,92 +305,93 @@ Resources:
     Properties:
       RepositoryName: myapp-core
 
-  DeviceAdvisorRole:
-    Type: AWS::IAM::Role
-    Properties:
-      Path: /myapp/role/
-      AssumeRolePolicyDocument:
-        Version: 2012-10-17
-        Statement:
-        - Effect: Allow
-          Action:
-          - 'sts:AssumeRole'
-          Principal:
-            Service:
-            - iotdeviceadvisor.amazonaws.com
-      ManagedPolicyArns:
-      - arn:aws:iam::aws:policy/service-role/AWSIoTThingsRegistration
-      - arn:aws:iam::aws:policy/service-role/AWSIoTLogging
-      - arn:aws:iam::aws:policy/service-role/AWSIoTRuleActions
-      - arn:aws:iam::aws:policy/AWSIoTDataAccess
-
-
-  MyAppCodePipelineServiceRole:
-    Type: AWS::IAM::Role
-    Properties:
-      Path: /myapp/role/
-      AssumeRolePolicyDocument:
-        Version: 2012-10-17
-        Statement:
-        - Effect: Allow
-          Action:
-          - 'sts:AssumeRole'
-          Principal:
-            Service:
-            - codepipeline.amazonaws.com
-      ManagedPolicyArns:
-        - !Ref CodePipelineCorePolicy
-
-  MyAppCodeBuildBuildRole:
-    Type: AWS::IAM::Role
-    Properties:
-      Path: /myapp/role/
-      AssumeRolePolicyDocument:
-        Version: 2012-10-17
-        Statement:
-        - Effect: Allow
-          Action:
-          - 'sts:AssumeRole'
-          Principal:
-            Service:
-            - codebuild.amazonaws.com
-      ManagedPolicyArns:
-        - !Ref CodeBuildBuildPolicy
-        - !Ref CodeCommitPullPolicy
-        - !Ref SecretsManagerAccessPolicy
-  
-  MyAppCodeBuildIntegrationTestRole:
-    Type: AWS::IAM::Role
-    Properties:
-      Path: /myapp/role/
-      AssumeRolePolicyDocument:
-        Version: 2012-10-17
-        Statement:
-        - Effect: Allow
-          Action:
-          - 'sts:AssumeRole'
-          Principal:
-            Service:
-            - codebuild.amazonaws.com
-      ManagedPolicyArns:
-        - !Ref CodeBuildTestPolicy
-        - !Ref CodeCommitPullPolicy
-        - !Ref SecretsManagerAccessPolicy
-        - !Ref DeviceAdvisorAccessPolicy
-        
-  CodeBuildBuildPolicy:
+  CodeCommitPullPolicy:
     Type: AWS::IAM::ManagedPolicy
     Properties:
-      Description: Policy for the MyApp build project in AWS CodeBuild.
+      Description: >-
+          Policy to have capability to pull code from the CodeCommit
+          repo.
       Path: /myapp/policy/
       PolicyDocument:
         Version: "2012-10-17"
         Statement:
           - Effect: Allow
             Action:
-              - 'logs:CreateLogGroup'
-              - 'logs:CreateLogStream'
-              - 'logs:PutLogEvents'
+              - codecommit:GitPull
+            Resource: !GetAtt MyAppRepo.Arn
+
+  ##############################################################################
+  ##
+  ## AWS CodeBuild: Build process
+  ##
+  ##############################################################################
+
+  MyAppBuild:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Artifacts:
+        Type: CODEPIPELINE
+      BadgeEnabled: false
+      Description: >-
+          The build process for creating an image and propagating to
+          ECR for automated build processes.
+      Environment:
+        Type: LINUX_CONTAINER
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: aws/codebuild/amazonlinux2-x86_64-standard:3.0
+        PrivilegedMode: false
+        EnvironmentVariables:
+          - Name: certificate
+            Value: /CodeBuild/MyAppSecrets:certificate
+            Type: SECRETS_MANAGER
+          - Name: privatekey
+            Value: /CodeBuild/MyAppSecrets:privatekey
+            Type: SECRETS_MANAGER
+          - Name: iotcore_endpoint
+            Value: /CodeBuild/MyAppSecrets:iotcore_endpoint
+            Type: SECRETS_MANAGER
+          - Name: da_endpoint
+            Value: /CodeBuild/MyAppSecrets:da_endpoint
+            Type: SECRETS_MANAGER
+      Name: MyApp-Build
+      ServiceRole: !GetAtt MyAppCodeBuildBuildRole.Arn
+      Source:
+        BuildSpec: configuration/awscsdk-buildspec-build.yml
+        Type: CODEPIPELINE
+      SourceVersion: master
+
+  MyAppCodeBuildBuildRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Path: /myapp/
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+        - Effect: Allow
+          Action:
+          - sts:AssumeRole
+          Principal:
+            Service:
+            - codebuild.amazonaws.com
+            - codepipeline.amazonaws.com
+      ManagedPolicyArns:
+        - !Ref CodeBuildBuildPolicy
+        - !Ref CodeCommitPullPolicy
+        - !Ref SecretsManagerAccessPolicy
+
+  CodeBuildBuildPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Description: Policy for the MyApp build project in AWS CodeBuild.
+      Path: /myapp/
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - logs:CreateLogGroup
+              - logs:CreateLogStream
+              - logs:PutLogEvents
             Resource:
               - !Join
                 - ''
@@ -314,11 +409,11 @@ Resources:
                   - ':log-group:/aws/codebuild/MyApp-Build:*'
           - Effect: Allow
             Action:
-              - 's3:PutObject'
-              - 's3:GetObject'
-              - 's3:GetObjectVersion'
-              - 's3:GetBucketAcl'
-              - 's3:GetBucketLocation'
+              - s3:PutObject
+              - s3:GetObject
+              - s3:GetObjectVersion
+              - s3:GetBucketAcl
+              - s3:GetBucketLocation
             Resource:
               - !Join
                 - ''
@@ -327,11 +422,11 @@ Resources:
                   - '-*'
           - Effect: Allow
             Action:
-              - 'codebuild:CreateReportGroup'
-              - 'codebuild:CreateReport'
-              - 'codebuild:UpdateReport'
-              - 'codebuild:BatchPutTestCases'
-              - 'codebuild:BatchPutCodeCoverages'
+              - codebuild:CreateReportGroup
+              - codebuild:CreateReport
+              - codebuild:UpdateReport
+              - codebuild:BatchPutTestCases
+              - codebuild:BatchPutCodeCoverages
             Resource:
               - !Join
                 - ''
@@ -340,6 +435,73 @@ Resources:
                   - ':'
                   - !Ref 'AWS::AccountId'
                   - ':report-group/MyApp-Build-*'
+
+
+  ##############################################################################
+  ##
+  ## AWS CodeBuild: Integration Test process
+  ##
+  ##############################################################################
+
+  MyAppTest:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Artifacts:
+        Type: CODEPIPELINE
+      BadgeEnabled: false
+      Description: >-
+          The build process for creating an image and propagating to
+          ECR for automated build processes.
+      Environment:
+        Type: LINUX_CONTAINER
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: aws/codebuild/amazonlinux2-x86_64-standard:3.0
+        PrivilegedMode: false
+        EnvironmentVariables:
+          - Name: certificate
+            Value: /CodeBuild/MyAppSecrets:certificate
+            Type: SECRETS_MANAGER
+          - Name: privatekey
+            Value: /CodeBuild/MyAppSecrets:privatekey
+            Type: SECRETS_MANAGER
+          - Name: iotcore_endpoint
+            Value: /CodeBuild/MyAppSecrets:iotcore_endpoint
+            Type: SECRETS_MANAGER
+          - Name: da_endpoint
+            Value: /CodeBuild/MyAppSecrets:da_endpoint
+            Type: SECRETS_MANAGER
+          - Name: thing_arn
+            Value: /CodeBuild/MyAppSecrets:thing_arn
+            Type: SECRETS_MANAGER
+          - Name: certificate_arn
+            Value: /CodeBuild/MyAppSecrets:certificate_arn
+            Type: SECRETS_MANAGER
+      Name: MyApp-Integration-Test
+      ServiceRole: !GetAtt MyAppCodeBuildIntegrationTestRole.Arn
+      Source:
+        BuildSpec: configuration/awscsdk-buildspec-test.yml
+        Type: CODEPIPELINE
+      SourceVersion: master
+
+  MyAppCodeBuildIntegrationTestRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Path: /myapp/role/
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+        - Effect: Allow
+          Action:
+          - sts:AssumeRole
+          Principal:
+            Service:
+            - codebuild.amazonaws.com
+            - codepipeline.amazonaws.com
+      ManagedPolicyArns:
+        - !Ref CodeBuildTestPolicy
+        - !Ref CodeCommitPullPolicy
+        - !Ref SecretsManagerAccessPolicy
+        - !Ref DeviceAdvisorAccessPolicy
 
   CodeBuildTestPolicy:
     Type: AWS::IAM::ManagedPolicy
@@ -398,20 +560,65 @@ Resources:
               - !Ref 'AWS::AccountId'
               - ':report-group/MyApp-Integration-Test-*'
 
-  CodeCommitPullPolicy:
-    Type: AWS::IAM::ManagedPolicy
+  ##############################################################################
+  ##
+  ## AWS CodeBuild: Deployment
+  ##
+  ##############################################################################
+
+  MyAppDeploymentBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Delete
     Properties:
-      Description: >-
-          Policy to have capability to pull code from the CodeCommit
-          repo.
-      Path: /myapp/policy/
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+        - ServerSideEncryptionByDefault:
+            SSEAlgorithm: AES256
+
+  MyAppDeploymentBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref MyAppDeploymentBucket
       PolicyDocument:
-        Version: "2012-10-17"
         Statement:
-          - Effect: Allow
-            Action:
-              - 'codecommit:GitPull'
-            Resource: !GetAtt MyAppRepo.Arn
+          - Effect: Deny
+            Action: 's3:*'
+            Principal: '*'
+            Resource:
+              - !Join
+                - ''
+                - - 'arn:aws:s3:::'
+                  - !Ref MyAppDeploymentBucket
+              - !Join
+                - ''
+                - - 'arn:aws:s3:::'
+                  - !Ref MyAppDeploymentBucket
+                  - '/*'
+            Condition:
+              Bool:
+                aws:SecureTransport: false
+
+  ##############################################################################
+  ##
+  ## AWS CodePipeline
+  ##
+  ##############################################################################
+
+  MyAppCodePipelineServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Path: /myapp/role/
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+        - Effect: Allow
+          Action:
+          - sts:AssumeRole
+          Principal:
+            Service:
+            - codepipeline.amazonaws.com
+      ManagedPolicyArns:
+        - !Ref CodePipelineCorePolicy
 
   CodePipelineCorePolicy:
     Type: AWS::IAM::ManagedPolicy
@@ -542,66 +749,18 @@ Resources:
           - 'appconfig:StopDeployment'
           - 'appconfig:GetDeployment'
           Resource: '*'
+  
+  ##############################################################################
+  ##
+  ## AWS IoT Core: Thing
+  ##
+  ##############################################################################
 
-  DeviceAdvisorAccessPolicy:
-    Type: AWS::IAM::ManagedPolicy
-    Properties:
-      Description: Policy for accessing Device Advisor automatically from CodeBuild.
-      Path: /myapp/policy/
-      PolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Effect: Allow
-            Action:
-              - 'iam:PassRole'
-            Resource: !GetAtt DeviceAdvisorRole.Arn
-            Condition:
-              StringEquals:
-                'iam:PassedToService':
-                  - 'iotdeviceadvisor.amazonaws.com'
-          - Effect: Allow
-            Action:
-              - 'iam:ListRoles'
-              - 'iot:Connect'
-              - 'logs:DescribeLogStreams'
-              - 'iot:DescribeThing'
-              - 'iot:DescribeCertificate'
-              - 'logs:CreateLogGroup'
-              - 'logs:DescribeLogGroups'
-              - 'logs:PutLogEvents'
-              - 'iot:DescribeEndpoint'
-              - 'execute-api:Invoke*'
-              - 'logs:CreateLogStream'
-              - 'iot:ListPrincipalPolicies'
-              - 'iot:ListThingPrincipals'
-              - 'iot:ListThings'
-              - 'iot:Publish'
-              - 'iot:CreateJob'
-              - 'iot:DescribeJob'
-              - 'iot:ListCertificates'
-              - 'iot:ListAttachedPolicies'
-              - 'iot:UpdateThingShadow'
-              - 'iot:GetPolicy'
-            Resource: '*'
-          - Effect: Allow
-            Action:
-              - 'iotdeviceadvisor:*'
-            Resource: '*'
+  MyAppThing:
+    Type: AWS::IoT::Thing
 
-  SecretsManagerAccessPolicy:
-    Type: AWS::IAM::ManagedPolicy
-    Properties:
-      Description: >-
-          Policy for accessing Device Advisor automatically from
-          CodeBuild.
-      Path: /myapp/policy/
-      PolicyDocument:
-        Version: "2012-10-17"
-        Statement:
-          - Effect: Allow
-            Action:
-              - 'secretsmanager:GetSecretValue'
-            Resource: !Ref MyAppSecrets
+
+
 
   C9InstancePolicy:
     Type: AWS::IAM::ManagedPolicy
@@ -677,13 +836,6 @@ Resources:
         FromPort: 443
         ToPort: 443
         CidrIp: 127.0.0.1/32
-    Metadata:
-      cfn_nag:
-        'rules_to_suppress':
-          - id: W5
-            reason: At the time of launch egress cidr/port not known.
-          - id: W29
-            reason: At the time of launch egress cidr/port not known.
 
   C9InstanceRole:
     Type: AWS::IAM::Role
@@ -772,10 +924,10 @@ Resources:
               Action:
                 - 's3:*'
               Resource:
-                - !GetAtt S3Bucket.Arn
+                - !GetAtt MyAppDeploymentBucket.Arn
                 - !Join
                   - ''
-                  - - !GetAtt S3Bucket.Arn
+                  - - !GetAtt MyAppDeploymentBucket.Arn
                     - '/*'
 
   BootstrapC9InstanceCustom:
@@ -879,13 +1031,12 @@ Resources:
                   except Exception as e:
                       responseData = {'Error': traceback.format_exc()}
                       cfnresponse.send(event, context, cfnresponse.FAILED, responseData, 'CustomResourcePhysicalID')
-  C9OutputBucket:
-    Type: AWS::S3::Bucket
-    DeletionPolicy: Delete
 
   C9SSMDocument: 
     Type: AWS::SSM::Document
-    Properties: 
+    DependsOn:
+      - MyAppRepo
+    Properties:
       Tags:
         - Key: Environment
           Value: MyApp
@@ -894,6 +1045,15 @@ Resources:
       Content: 
         schemaVersion: '2.2'
         description: Bootstrap Cloud9 Instance
+        parameters:
+          myappRepo:
+            type: String
+          myappDaSuiteId:
+            type: String
+          secretName:
+            type: String
+          thingName:
+            type: String
         mainSteps:
         - action: aws:runShellScript
           name: C9bootstrap
@@ -905,27 +1065,12 @@ Resources:
             - echo LC_ALL=en_US.UTF-8 >> /etc/environment
             - . /home/ec2-user/.bashrc
             - yum -y install sqlite telnet jq strace tree gcc glibc-static python3 python3-pip gettext bash-completion
-            - yum -y remove openssl-devel
-            - yum -y install jq openssl11 openssl11-devel
-            - echo '=== CONFIGURE default python version ==='
-            - PATH=$PATH:/usr/bin
-            - alternatives --set python /usr/bin/python3.6
-            - echo '=== CONFIGURE awscli and setting ENVIRONMENT VARS ==='
-            - yum -y remove aws-cli
-            - echo '=== INSTALL and CONFIGURE default software components ==='
-            - pip3 install boto boto3 botocore awscli
-            - sudo -H -u ec2-user bash -c "pip3 install --user -U boto boto3 botocore awscli aws-sam-cli"
-            - echo "complete -C '/usr/local/bin/aws_completer' aws" >> /home/ec2-user/.bashrc
+            - echo '=== Resizing the Instance volume'
+            - export PATH=$PATH:/usr/local/bin
             - mkdir /home/ec2-user/.aws
             - echo '[default]' > /home/ec2-user/.aws/config
             - echo 'output = json' >> /home/ec2-user/.aws/config
             - chmod 600 /home/ec2-user/.aws/config && chmod 600 /home/ec2-user/.aws/credentials
-            - echo 'PATH=$PATH:/usr/local/bin' >> /home/ec2-user/.bashrc
-            - echo 'PATH=$PATH:/usr/local/bin' >> ${HOME}/.bashrc
-            - echo 'export PATH' >> /home/ec2-user/.bashrc
-            - echo 'export PATH' >> ${HOME}/.bashrc
-            - echo '=== Resizing the Instance volume'
-            - export PATH=$PATH:/usr/local/bin
             - !Sub SIZE=15
             - !Sub REGION=${AWS::Region}
             - |
@@ -965,21 +1110,13 @@ Resources:
                   sudo resize2fs /dev/nvme0n1p1
                 fi
               fi
-            - echo '=== CONFIGURE git ==='
-            - sudo -H -u ec2-user bash -c "git config --global user.name 'Cloudy Builder'"
-            - sudo -H -u ec2-user bash -c "git config --global user.email 'developer@builder.me'"
-            - sudo -H -u ec2-user bash -c 'git config --global credential.helper "!aws codecommit credential-helper $@"'
-            - sudo -H -u ec2-user bash -c 'git config --global credential.UseHttpPath true'
             - echo '=== CONFIGURE development environment ==='
-            - mkdir -p /opt/cmake
-            - wget -q https://github.com/Kitware/CMake/releases/download/v3.21.4/cmake-3.21.4-linux-x86_64.sh
-            - sh ./cmake-3.21.4-linux-x86_64.sh --skip-license --prefix=/opt/cmake
-            - echo "export PATH=/opt/cmake/bin:$PATH" >> /home/ec2-user/.bashrc
-            - rm cmake-3.21.4-linux-x86_64.sh
+            - sudo -H -u ec2-user bash -c 'git clone https://github.com/rpcme/stm32f7-renode ${HOME}/environment/myapp-config'
+            - sudo -H -u ec2-user bash -c '/home/ec2-user/environment/myapp-config/scripts/initialize-self-directed.sh {{myappRepo}} {{myappDaSuiteId}} {{thingName}} {{secretName}}'
             - echo '=== CLEANING /home/ec2-user ==='
             - for f in cloud9; do rm -rf /home/ec2-user/$f; done
             - chown -R ec2-user:ec2-user /home/ec2-user/
-            - touch /home/ec2-user/BOOTSTRAP_COMPLETE
+            - touch /home/ec2-user/environment/BOOTSTRAP_COMPLETE
             - echo '=== PREPARE REBOOT in 1 minute with at ==='
             - FILE=$(mktemp) && echo $FILE && echo '#!/bin/bash' > $FILE && echo 'reboot -f' >> $FILE && at now + 1 minute -f $FILE
             - echo "Bootstrap completed with return code $?"
@@ -987,18 +1124,27 @@ Resources:
   C9BootstrapAssociation: 
     Type: AWS::SSM::Association
     DependsOn:
-      - C9OutputBucket
       - BootstrapC9InstanceLambdaFunction
+      - C9SSMDocument
+      - MyAppRepo
+      - MyAppIntegrationTestSuite
+      - MyAppSecrets
+      - MyAppThing
     Properties: 
       Name: !Ref C9SSMDocument
-      OutputLocation: 
-        S3Location:
-          OutputS3BucketName: !Ref C9OutputBucket
-          OutputS3KeyPrefix: bootstrapoutput
+      Parameters:
+        myappRepo:
+        - !GetAtt MyAppRepo.CloneUrlHttp
+        myappDaSuiteId:
+        - !GetAtt MyAppIntegrationTestSuite.SuiteDefinitionId
+        secretName:
+        - !Ref MyAppSecrets
+        thingName:
+        - !Ref MyAppThing
       Targets:
-        - Key: tag:SSMBootstrap
-          Values:
-          - Active
+      - Key: tag:SSMBootstrap
+        Values:
+        - Active
 
 Outputs:
   AWSCloud9URL:
@@ -1016,10 +1162,10 @@ Outputs:
     Description: >-
       Environment id of your AWS Cloud9 IDE
     Value: !Ref C9Instance
-  S3Bucket:
+  MyAppDeploymentBucket:
     Description: >-
-      Name of the S3 Bucket for the IoT workshop
-    Value: !Ref S3Bucket
+      Name of the S3 Bucket for deployments
+    Value: !Ref MyAppDeploymentBucket
   IoTPolicy:
     Description: >-
       Name of the IoT policy for JITP

@@ -311,6 +311,7 @@ echo "CERTIFICATE_ARN=${CERTIFICATE_ARN}"   >> ${EXPORTS_FILE}
 echo "CERTIFICATE_FILE=${certificate_file}" >> ${EXPORTS_FILE}
 echo "PRIVATEKEY_FILE=${privkey_file}"      >> ${EXPORTS_FILE}
 echo "IOTCORE_ENDPOINT=${iotcore_endpoint}" >> ${EXPORTS_FILE}
+echo "DA_ENDPOINT=${iotcore_endpoint}"      >> ${EXPORTS_FILE}
 
 echo source the exports file for easy credential handling, i.e.
 echo . ${EXPORTS_FILE}
