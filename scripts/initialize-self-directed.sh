@@ -60,7 +60,7 @@ myapp-config/scripts/create-iot-credential.sh \
     -F \
     -d "$2" \
     -t "$3" \
-    -n awscsdk-mqtt-policy \
+    -n awscsdk-mqtt-policy-${mydevice} \
     -f ${basedir}/myapp-config/configuration/awscsdk-iotcore-policy.json \
     -o ${basedir}/credentials \
     -s "$4" \
