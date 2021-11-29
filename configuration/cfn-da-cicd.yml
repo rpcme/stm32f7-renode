@@ -258,6 +258,52 @@ Resources:
                   - !Ref MyAppThing
                   - '/example/topic'
 
+  DeviceAdvisorSubscribePolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Description: Device Advisor publish policy
+      Path: /myapp/
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - iot:Publish
+              - iot:Receive
+            Resource:
+              - !Join
+                - ''
+                - - 'arn:aws:iot:'
+                  - !Ref 'AWS::Region'
+                  - ':'
+                  - !Ref 'AWS::AccountId'
+                  - ':topic/all/device/telemetry'
+              - !Join
+                - ''
+                - - 'arn:aws:iot:'
+                  - !Ref 'AWS::Region'
+                  - ':'
+                  - !Ref 'AWS::AccountId'
+                  - ':topicfilter/all/device/telemetry'
+              - !Join
+                - ''
+                - - 'arn:aws:iot:'
+                  - !Ref 'AWS::Region'
+                  - ':'
+                  - !Ref 'AWS::AccountId'
+                  - ':topic/'
+                  - !Ref MyAppThing
+                  - '/example/topic'
+              - !Join
+                - ''
+                - - 'arn:aws:iot:'
+                  - !Ref 'AWS::Region'
+                  - ':'
+                  - !Ref 'AWS::AccountId'
+                  - ':topicfilter/'
+                  - !Ref MyAppThing
+                  - '/example/topic'
+
   DeviceAdvisorRole:
     Type: AWS::IAM::Role
     Properties:
