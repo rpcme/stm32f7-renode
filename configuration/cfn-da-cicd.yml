@@ -623,7 +623,7 @@ Resources:
         - Effect: Allow
           Action:
           - iam:PassRole
-          Resource: !Ref DeviceAdvisorRole
+          Resource: !GetAtt DeviceAdvisorRole.Arn
           Condition:
             StringEquals:
               iam:PassedToService:
