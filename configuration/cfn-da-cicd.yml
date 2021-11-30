@@ -400,6 +400,9 @@ Resources:
           - Name: da_endpoint
             Value: /CodeBuild/MyAppSecrets:da_endpoint
             Type: SECRETS_MANAGER
+          - Name: thing_name
+            Value: /CodeBuild/MyAppSecrets:thing_name
+            Type: SECRETS_MANAGER
       Name: MyApp-Build
       ServiceRole: !GetAtt MyAppCodeBuildBuildRole.Arn
       Source:
@@ -420,7 +423,6 @@ Resources:
           Principal:
             Service:
             - codebuild.amazonaws.com
-            - codepipeline.amazonaws.com
       ManagedPolicyArns:
         - !Ref CodeBuildBuildPolicy
         - !Ref CodeCommitPullPolicy
@@ -545,7 +547,6 @@ Resources:
           Principal:
             Service:
             - codebuild.amazonaws.com
-            - codepipeline.amazonaws.com
       ManagedPolicyArns:
         - !Ref CodeBuildTestPolicy
         - !Ref CodeCommitPullPolicy
