@@ -552,6 +552,7 @@ Resources:
         - !Ref CodeCommitPullPolicy
         - !Ref SecretsManagerAccessPolicy
         - !Ref DeviceAdvisorAccessPolicy
+        - !Ref CodeBuildTestDAPolicy
         - arn:aws:iam::aws:policy/AWSIoTConfigAccess
 
   CodeBuildTestPolicy:
@@ -610,6 +611,50 @@ Resources:
               - ':'
               - !Ref 'AWS::AccountId'
               - ':report-group/MyApp-Integration-Test-*'
+
+  CodeBuildTestDAPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Description: Policy for the MyApp test project in AWS CodeBuild.
+      Path: /myapp/policy/
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+        - Effect: Allow
+          Action:
+          - iam:PassRole
+          Resource: !Ref DeviceAdvisorRole
+          Condition:
+            StringEquals:
+              iam:PassedToService:
+                - iotdeviceadvisor.amazonaws.com
+        - Effect: Allow
+          Action:
+          - iam:ListRoles
+          - iot:Connect
+          - logs:DescribeLogStreams
+          - iot:DescribeThing
+          - iot:DescribeCertificate
+          - logs:CreateLogGroup
+          - logs:DescribeLogGroups
+          - logs:PutLogEvents
+          - iot:DescribeEndpoint
+          - execute-api:Invoke*
+          - logs:CreateLogStream
+          - iot:ListPrincipalPolicies
+          - iot:ListThingPrincipals
+          - iot:ListThings
+          - iot:Publish
+          - iot:CreateJob
+          - iot:DescribeJob
+          - iot:ListCertificates
+          - iot:ListAttachedPolicies
+          - iot:UpdateThingShadow
+          - iot:GetPolicy
+          Resource: '*'
+        - Effect: Allow
+          Action: iotdeviceadvisor:*
+          Resource: '*'
 
   ##############################################################################
   ##
