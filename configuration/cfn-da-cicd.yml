@@ -551,6 +551,7 @@ Resources:
         - !Ref CodeCommitPullPolicy
         - !Ref SecretsManagerAccessPolicy
         - !Ref DeviceAdvisorAccessPolicy
+        - arn:aws:iam::aws:policy/AWSIoTConfigAccess
 
   CodeBuildTestPolicy:
     Type: AWS::IAM::ManagedPolicy
