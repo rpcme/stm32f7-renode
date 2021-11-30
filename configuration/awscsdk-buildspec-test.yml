@@ -14,8 +14,7 @@ phases:
       - echo ${privatekey} | base64 -d > /etc/key.pem
       - export LD_LIBRARY_PATH=${CODEBUILD_SRC_DIR_BuildArtifact}/build/lib:${LD_LIBRARY_PATH}
       - nohup ./mqtt_demo_mutual_auth > ${CODEBUILD_SRC_DIR_BuildArtifact}/myapp-integration.log & echo $! > ${CODEBUILD_SRC_DIR_BuildArtifact}/myapp-integration.pid
-      - echo aws iotdeviceadvisor start-suite-run --suite-definition-id ${da_suite} --suite-run-configuration "primaryDevice={thingArn=${thing_arn},certificateArn=${certificate_arn}}" --output text --query suiteRunId
-      - suite_run_id=$(aws iotdeviceadvisor start-suite-run --suite-definition-id ${da_suite} --suite-run-configuration "primaryDevice={thingArn=${thing_arn},certificateArn=${certificate_arn}}" --output text --query suiteRunId)
+      - suite_run_id=$(aws iotdeviceadvisor start-suite-run --suite-definition-id ${da_suite} --suite-run-configuration "primaryDevice={thingArn=${thing_arn},certificateArn=${certificate_arn},parallelRun=false}" --output text --query suiteRunId)
       - ${CODEBUILD_SRC_DIR}/scripts/da-monitor.sh ${da_suite} ${suite_run_id}
       - kill $(cat ${CODEBUILD_SRC_DIR_BuildArtifact}/myapp-integration.pid)
       - cat ${CODEBUILD_SRC_DIR_BuildArtifact}/myapp-integration.log
